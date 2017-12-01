@@ -1,5 +1,5 @@
-NextionDriver
--------------
+NextionDriver (for MMDVMHost)
+=============================
 
 The purpose of this program is to provide additional control for
 Nextion display layouts other than the MMDVMHost supplied layouts.
@@ -93,7 +93,8 @@ when systemd is used :
 First you alter mmdvmhost.service by adding the 'BindsTo' line
 This will tell the service it needs nextion-helper.service
 
----------------------mmdvmhost.service---------------------
+:::::::::::::::::::::mmdvmhost.service:::::::::::::::::::::
+`
 [Unit]
 Description=MMDVM Host Service
 After=syslog.target network.target
@@ -108,14 +109,16 @@ ExecStop=/usr/bin/screen -S MMDVMHost -X quit
 
 [Install]
 WantedBy=multi-user.target
------------------------------------------------------------
+`
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 Then you make a service 'nextion-helper.service'
 where you tell it needs to start before MMDVMHost :
 
 
-------------------nextion-helper.service-------------------
+::::::::::::::::::nextion-helper.service:::::::::::::::::::
+`
 [Unit]
 Description=Nextion Helper Service Service
 After=syslog.target network.target
@@ -130,5 +133,6 @@ ExecStop=/usr/bin/killall NextionDriver
 
 [Install]
 WantedBy=multi-user.target
------------------------------------------------------------
+`
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
