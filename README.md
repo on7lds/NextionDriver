@@ -94,7 +94,7 @@ First you alter mmdvmhost.service by adding the 'BindsTo' line
 This will tell the service it needs nextion-helper.service
 
 :::::::::::::::::::::mmdvmhost.service:::::::::::::::::::::
-`
+```
 [Unit]
 Description=MMDVM Host Service
 After=syslog.target network.target
@@ -109,7 +109,7 @@ ExecStop=/usr/bin/screen -S MMDVMHost -X quit
 
 [Install]
 WantedBy=multi-user.target
-`
+```
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
@@ -118,7 +118,7 @@ where you tell it needs to start before MMDVMHost :
 
 
 ::::::::::::::::::nextion-helper.service:::::::::::::::::::
-`
+```
 [Unit]
 Description=Nextion Helper Service Service
 After=syslog.target network.target
@@ -133,6 +133,6 @@ ExecStop=/usr/bin/killall NextionDriver
 
 [Install]
 WantedBy=multi-user.target
-`
+```
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
