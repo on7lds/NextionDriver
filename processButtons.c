@@ -16,12 +16,27 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if !defined(processCommands_H)
-#define processCommands_H
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include "NextionDriver.h"
 
+int page;
 
+//============================================================================
+//
+//   Put your code in the subroutine below
+//
+//============================================================================
+void processButtons(unsigned char code) {
 
-void processCommands();
+char buf[100];
 
+    //See the README file for how to define a button on the Nextion Display
 
-#endif
+    sprintf(buf, "msg.txt=\"Button pressed %d (%s)\"",  code, RXbuffer);
+    sendCommand(buf);
+
+}
+

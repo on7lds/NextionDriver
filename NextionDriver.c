@@ -29,20 +29,154 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <syslog.h>
+#include <stdarg.h>
 #include "NextionDriver.h"
 #include "processCommands.h"
+#include "processButtons.h"
 
-int open_input_source(char* devicename, long snelheid)
+
+const char ENDMRKR[3]="\xFF\xFF\xFF";
+int RXtail=0;
+char RXbuffertemp[1024];
+
+// this function tranforms RGB to nextion 5/6/5 bit
+char* RGBtoNextionColor(int RGB){
+    static char color[10];
+    unsigned int R=(RGB>>16)&0x0000FF;
+    unsigned int G=(RGB>> 8)&0x0000FF;
+    unsigned int B=(RGB>> 0)&0x0000FF;
+    int n=(((R>>3)<<11) + ((G>>2)<<5) + ((B>>3)));
+    sprintf(color,"%d",n);
+    return color;
+}
+
+void writelog(int level, char *fmt, ...)
+{
+    va_list args;
+    char str[1024];
+
+    va_start(args, fmt);
+    vsnprintf(str, 1024, fmt, args);
+    va_end(args);
+
+    if ( become_daemon==TRUE ) {
+        str[98]='.';str[99]='.';str[100]='.'; str[101]=0; syslog(level, str);
+    } else {
+        printf("%s\n",str);
+    }
+}
+
+
+void sendCommand(char *cmd){
+    if (strlen(cmd)>0) {
+        write(fd2,cmd,strlen(cmd));
+        write(fd2,"\xFF\xFF\xFF",3);
+        if (!become_daemon) { printf("TX: %s\n",cmd); }
+    }
+    if (!become_daemon)fflush(NULL);
+}
+
+
+void handleButton(int received) {
+    char code;
+    if (received>1) {
+        if (!become_daemon) {
+            printf("RX: %d (",received); int i; for (i=0; i<received; i++) printf("%02X ",RXbuffer[i]); printf(")\n"); 
+        }
+        if (RXbuffer[0]==42) {
+            if (!become_daemon) { printf("Received command %d\n",RXbuffer[1]); fflush(NULL); }
+            if (RXbuffer[1]>239) {
+                    if ((received>2)&&(received<200)) {
+                        if (!become_daemon) { printf("Received command text \"%s\"\n",&RXbuffer[2]); fflush(NULL); }
+                            sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
+                            sendCommand(TXbuffer);
+                            if (RXbuffer[1]==241) {
+                                FILE *ls = popen(&RXbuffer[2], "r");
+                                char buf[256];
+                                if (fgets(buf, sizeof(buf), ls) != 0) {
+                                    strtok(buf, "\n");
+                                    sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                    sendCommand(TXbuffer);
+                                }
+                                pclose(ls);
+                            } else {
+                                system(&RXbuffer[2]);
+                            }
+                    }
+            } else {
+                code=RXbuffer[1];
+                memmove(&RXbuffer,&RXbuffer[2],512);
+                processButtons(code);
+            }
+        }
+    }
+}
+
+
+
+void checkSerial(void) {
+/*    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(fd2, &fds);
+
+    struct timeval t = {0, 10000};
+    int sel=select(fd2 + 1, &fds, NULL, NULL, &t);
+    if (sel<=0) return;
+*/
+    char* s;
+
+    int r = read (fd2,&RXbuffertemp[RXtail],512);
+    if (r>0) {
+        RXtail+=r;
+        RXbuffertemp[RXtail]=0;
+
+        s=strstr(RXbuffertemp,ENDMRKR);
+        while (s!=NULL) {
+            s[0]=0;
+            memcpy(RXbuffer,RXbuffertemp,strlen(RXbuffertemp)+1);
+            handleButton(strlen(RXbuffertemp));
+            RXtail-=(strlen(RXbuffertemp)+3);
+            memmove(&RXbuffertemp,&s[3],512);
+            s=strstr(RXbuffertemp,ENDMRKR);
+        }
+    }
+}
+
+
+
+void talkToNextion(void) {
+    processCommands();
+    sendCommand(TXbuffer);
+    checkSerial();
+    if (!become_daemon) fflush(NULL);
+}
+
+
+void showRXbuffer(int buflen) {
+    int z;
+    if (!become_daemon) printf("RX: ");
+    for (z=0; z<buflen;z++) {
+        if ((RXbuffer[z]<' ')||(RXbuffer[z]>254)) {
+            if (!become_daemon) printf("0x%02X ",RXbuffer[z]); 
+        } else {
+            if (!become_daemon) printf("%c ",RXbuffer[z]);
+        }
+    }
+    if (!become_daemon)  {printf("\n");fflush(NULL);}
+}
+
+
+
+
+int open_input_source(char* devicename, long BAUD)
 {
     struct termios newtio;
-    long BAUD;
     long DATABITS;
     long STOPBITS;
     long PARITYON;
     long PARITY;
     int  fd;
 
-    BAUD     = snelheid;
     DATABITS = CS8;
     STOPBITS = 0;	// 0 = 1 stopbit
     PARITYON = 0;	// 0 = geen pariteit
@@ -52,7 +186,7 @@ int open_input_source(char* devicename, long snelheid)
     if (fd < 0)
     {
         perror(devicename);
-        printf("Serial port %s not found.\n\n",devicename);
+        writelog(LOG_ERR,"Serial port %s not found. Exiting.",devicename);
         exit(1);
     }
     newtio.c_cflag = BAUD | CRTSCTS | DATABITS | STOPBITS | PARITYON | PARITY | CLOCAL | CREAD;
@@ -64,9 +198,11 @@ int open_input_source(char* devicename, long snelheid)
 
     tcflush(fd, TCIOFLUSH);
     tcsetattr(fd,TCSANOW,&newtio);
-    printf("port %s (fd %i)\n",devicename,fd);
+//  printf("port %s (fd %i)\n",devicename,fd);
     return fd;
 }
+
+
 
 int ptym_open(char *pts_name, char *pts_name_s , int pts_namesz)
 {
@@ -97,15 +233,17 @@ int ptym_open(char *pts_name, char *pts_name_s , int pts_namesz)
     return(fdm);
 }
 
+
 static void go_daemon() {
     pid_t pid = 0;
     pid_t sid = 0;
 
     pid = fork();
     if (pid < 0)
-    {  printf("fork failed!\n"); exit(EXIT_FAILURE); }
+    {  writelog(LOG_ERR,"fork failed! Exiting."); exit(EXIT_FAILURE); }
     if (pid > 0)
-    {  printf("process_id of child process %d \n", pid); exit(EXIT_SUCCESS); }
+    {  // printf("process_id of child process %d \n", pid); 
+        exit(EXIT_SUCCESS); }
     umask(0);
     sid = setsid();
     if(sid < 0)
@@ -116,12 +254,11 @@ static void go_daemon() {
     close(STDERR_FILENO);
 }
 
-
 static void terminate(int sig)
 {
     char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
 
-    syslog(LOG_NOTICE, "NextionDriver V%s terminated on signal %s (%s)",NextionDriver_VERSION,signame[sig],strsignal(sig));
+    writelog(LOG_NOTICE, "NextionDriver V%s terminated on signal %s (%s)",NextionDriver_VERSION,signame[sig],strsignal(sig));
     close(fd1);
     close(fd2);
     unlink(NextionDriverLink);
@@ -131,7 +268,6 @@ static void terminate(int sig)
 
 int main(int argc, char *argv[])
 {
-    char c1;
     int t,ok,wait;
 
     become_daemon=TRUE;
@@ -146,6 +282,9 @@ int main(int argc, char *argv[])
     signal(SIGUSR1, terminate);
     signal(SIGUSR2, terminate);
 
+    strcpy(NextionDriverLink,NEXTIONDRIVERLINK);
+    strcpy(nextionPort,NEXTIONPORT);
+
     while ((t = getopt(argc, argv, "dvm:n:h")) != -1) {
         switch (t) {
             case 'd':
@@ -153,7 +292,7 @@ int main(int argc, char *argv[])
                 break;
             case 'v':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
-                printf ("Copyright (C) 2017 ON7LDS. All rights reserved.\n\n");
+                printf("Copyright (C) 2017 ON7LDS. All rights reserved.\n\n");
                 return 0;
                 break;
            case 'm':
@@ -166,12 +305,14 @@ int main(int argc, char *argv[])
                 break;
            case 'h':
            case ':':
-                printf("\nUsage: %s -n <Nextion port serial port> -m <MMDVMHost port> [-d] [-h]\n\n", argv[0]);
+                printf("\nUsage: %s [-n <Nextion port serial port>] [-m <MMDVMHost port>] [-d] [-h]\n\n", argv[0]);
                 printf("  -n\tspecify the serial port where the Nextion is connected\n");
+                printf("    \t (default = %s)\n",NEXTIONDRIVERLINK);
                 printf("  -m\tspecify the virtual serial port link that will be created to connect MMDVMHost to\n");
+                printf("    \t (default = %s)\n",NEXTIONPORT);
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
                 printf("  -h\tthis help.\n\n");
-                printf("Example : %s -n /dev/ttyAMA0 -m /dev/NextionDriver\n\n", argv[0]);
+                printf("Example : %s -n /dev/ttyAMA0 -m /dev/ttyNextionDriver\n\n", argv[0]);
 
                 exit(0);
                 break;
@@ -179,43 +320,51 @@ int main(int argc, char *argv[])
         }
     }
 
+/*
     if (ok<2) {
         printf("ERROR: no ports given.\nTip: use -h\n");
         exit(1);
     }
-
+*/
     if (become_daemon) {
         go_daemon();
-        syslog(LOG_NOTICE, "NextionDriver version %s", NextionDriver_VERSION);
-        syslog(LOG_NOTICE, "Copyright (C) 2017 ON7LDS. All rights reserved.");
-    } else printf("Started in console mode.\n");
+    } else printf("Starting in console mode...\n");
 
+    writelog(LOG_NOTICE,"NextionDriver version %s", NextionDriver_VERSION);
+    writelog(LOG_NOTICE,"Copyright (C) 2017 ON7LDS. All rights reserved.");
 
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
-    fd2=open_input_source(nextionPort,9600);
-    unlink(NextionDriverLink);
-    symlink(mmdvmPort, NextionDriverLink);
+    fd2=open_input_source(nextionPort,BAUDRATE);
+    ok=unlink(NextionDriverLink);
+//    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
+    ok=symlink(mmdvmPort, NextionDriverLink);
+    if (ok!=0) { writelog(LOG_ERR,"Link %s could not be created (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
+    writelog(LOG_NOTICE,"%s (=%s) <=> %s",NextionDriverLink,mmdvmPort,nextionPort);
 
-    if (become_daemon)
-        syslog(LOG_NOTICE, "%s (=%s) <=> %s\n",NextionDriverLink,mmdvmPort,nextionPort);
-    else
-        printf("%s (=%s) <=> %s\n",NextionDriverLink,mmdvmPort,nextionPort);
+    t=0; wait=0; int r=0;
+    char buffer[1024];
+    char* s;
+    int start=0;
 
-    t=0; wait=0;
+    RXtail=0;
     while(1)
     {
-    // MMDVMHost to Nextion commands
-        while(read (fd1,&c1,1) == 1) {
-            TXbuffer[t++]=c1; TXbuffer[t]=0;
-            if ((t>3)&&(TXbuffer[t-1]==255)&&(TXbuffer[t-2]==255)&&(TXbuffer[t-3]==255)) {
-                //command found, do something with it
-                TXbuffer[t-3]=0; t=0; process();
-                wait=0;
-                break;
-            }
+        r = read (fd1,&buffer[start],512);
+        if (r>0) {
+            memset(&buffer[start+r],0,511);
+            start+=r;
         }
-        usleep(1000);
-        if (wait++>500) { wait=0; TXbuffer[0]=0; process(); }
+        s=strstr(buffer,ENDMRKR);
+        while (s!=NULL) {
+            s[0]=0;
+            strcpy(TXbuffer,buffer);
+            memmove(&buffer,&s[3],512);
+            start-=(strlen(TXbuffer)+3);
+            wait=0;
+            s=strstr(buffer,ENDMRKR);
+            talkToNextion();
+        }
+        if (wait++>1000) { wait=0; TXbuffer[0]=0; talkToNextion(); }
     }
     close(fd1);
     close(fd2);

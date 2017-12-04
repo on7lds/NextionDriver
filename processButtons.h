@@ -16,12 +16,12 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if !defined(processCommands_H)
-#define processCommands_H
+#if !defined(processButtons_H)
+#define processButtons_H
 
 
 
-void processCommands();
+void processButtons(unsigned char code);
 
 
 #endif

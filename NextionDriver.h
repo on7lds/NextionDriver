@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.00"
+#define NextionDriver_VERSION "0.90"
 
 #define TRUE	1
 #define FALSE	0
@@ -27,17 +27,23 @@
 #define DEBUG	1
 
 #define NEXTIONPORT		"/dev/ttyAMA0"
-#define NextionDriverLINK	"/tmp/NextionDriver"
+#define NEXTIONDRIVERLINK	"/dev/ttyNextionDriver"
+
+//#define BAUDRATE	B115200
+#define BAUDRATE	B9600
 
 char mux[100];
 char mmdvmPort[100];
 char nextionPort[100];
 char NextionDriverLink[100];
 
+
 int fd1,fd2;
 int become_daemon;
 
 char TXbuffer[1024],RXbuffer[1024];
 
+char* RGBtoNextionColor(int RGB);
+void sendCommand(char *cmd);
 
 #endif
