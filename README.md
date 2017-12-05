@@ -31,6 +31,7 @@ the routine process() in processCommands.c
 
 * this routine is called for each command, sent by MMDVMHost. The command
   which is sent, is in RXbuffer (without the trailing 0xFF 0xFF 0xFF).
+* the RXbuffer holds a string, so it is not possible to send 0x00 characters
 * you can inspect, change or add commands, but keep in mind that at the end of
   the routine the RXbuffer (if not empty) is sent to the Nextion display
   (empty the buffer if you do not want to send something to the display)
@@ -41,59 +42,59 @@ the routine processButtons() in processButtons.c
 
 * This routine is called whenever there is an event sent from the display.
   For this you have to make a button on the Nextion display which has in its
-  Touch Release Event following code:
-	printh 2A
-	printh <code nr>
-	printh FF
-	printh FF
-	printh FF
+  Touch Release Event following code:  
+   printh 2A  
+   printh (code nr)  
+   printh FF  
+   printh FF  
+   printh FF  
 
-  where <code nr> is a number 0x01...0xEF (look sharp: 0xEF NOT 0xFF !)
-  The command is in the RXbuffer (without the trailing 0xFF 0xFF 0xFF).	
+where (code nr) is a number 0x01...0xEF (look sharp: 0xEF NOT 0xFF !)
+The command is in the RXbuffer (without the trailing 0xFF 0xFF 0xFF).
 
-  Then there are some special codes :
+Then there are some special codes :
 
-* when there is a command
-	printh 2A
-	printh F0
-	printh <linux command>
-	printh FF
-	printh FF
-	printh FF
+* when there is a command  
+   printh 2A  
+   printh F0  
+   printh (linux command)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+the 'linux command' is executed  
+  
+* When there is a command  
+   printh 2A  
+   printh F1  
+   printh (linux command)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+the 'linux command' is executed and the __FIRST__ line of the result
+is sent to the display variable 'msg'  
 
-	the 'linux command' is executed
-
-* When there is a command 
-	printh 2A
-	printh F1
-	printh <linux command>
-	printh FF
-	printh FF
-	printh FF
-
-	the 'linux command' is executed and the __FIRST__ line of the result
-	is sent to the display variable 'msg'
-
-  There is an example HMI file included.
-  Press on the MMDVM logo on the main screen to go to the 'system' page
+There is an example HMI file included.   
+Press on the MMDVM logo on the main screen to go to the 'system' page  
 
 
 How to use this program ?
 =========================
 
-after compiling with
-	make
+after compiling with  
+   make
 
-you should have a binary
-	NextionDriver
-
+you should have a binary  
+   NextionDriver  
+  
 You can start this program in _debug mode_, then all commands that are sent
 to the display, will be printed to stdout.
 Or you can start this program in _normal mode_, then it will go to the 
 background and do its work quitly (start and stop of the program
-will be logged in syslog)
+will be logged in syslog)  
 
-The program takes at least 2 parameters. For example :
+The program takes at least 2 parameters. For example :  
 
 ./NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver
 
