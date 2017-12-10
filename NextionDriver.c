@@ -36,7 +36,7 @@
 
 
 const char ENDMRKR[3]="\xFF\xFF\xFF";
-int RXtail=0;
+int verbose, RXtail=0;
 char RXbuffertemp[1024];
 
 // this function tranforms RGB to nextion 5/6/5 bit
@@ -59,9 +59,13 @@ void writelog(int level, char *fmt, ...)
     vsnprintf(str, 1024, fmt, args);
     va_end(args);
 
-    if ( become_daemon==TRUE ) {
-        str[98]='.';str[99]='.';str[100]='.'; str[101]=0; syslog(level, str);
+    if ( (become_daemon==TRUE) || (verbose>0) ) {
+        str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
+		if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
     } else {
+		printf("%s\n",str);
+	}
+	if (verbose>0) {
         printf("%s\n",str);
     }
 }
@@ -71,23 +75,31 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        if (!become_daemon) { printf("TX: %s\n",cmd); }
+        writelog(LOG_NOTICE,"TX: %s",cmd);
     }
     if (!become_daemon)fflush(NULL);
 }
 
 
 void handleButton(int received) {
-    char code;
+    char code, text[150];
     if (received>1) {
         if (!become_daemon) {
-            printf("RX: %d (",received); int i; for (i=0; i<received; i++) printf("%02X ",RXbuffer[i]); printf(")\n"); 
+			sprintf(text,"RX: %d (",received);
+			int i; 
+			for (i=0; i<received; i++) {
+				sprintf(&text[strlen(text)], "%02X ",RXbuffer[i]);
+			}
+			sprintf(&text[strlen(text)], ")");
+			writelog(LOG_NOTICE,text);
         }
         if (RXbuffer[0]==42) {
-            if (!become_daemon) { printf("Received command %d\n",RXbuffer[1]); fflush(NULL); }
+//            if (!become_daemon) { printf("Received command %d\n",RXbuffer[1]); fflush(NULL); }
+            writelog(LOG_NOTICE,"Received command 0x%02X\n",RXbuffer[1]);
             if (RXbuffer[1]>239) {
                     if ((received>2)&&(received<200)) {
-                        if (!become_daemon) { printf("Received command text \"%s\"\n",&RXbuffer[2]); fflush(NULL); }
+//                        if (!become_daemon) { printf("Received command text \"%s\"\n",&RXbuffer[2]); fflush(NULL); }
+                            writelog(LOG_NOTICE," Execute command \"%s\"",&RXbuffer[2]);
                             sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
                             sendCommand(TXbuffer);
                             if (RXbuffer[1]==241) {
@@ -95,6 +107,7 @@ void handleButton(int received) {
                                 char buf[256];
                                 if (fgets(buf, sizeof(buf), ls) != 0) {
                                     strtok(buf, "\n");
+                                    writelog(LOG_NOTICE," Command response \"%s\"",buf);
                                     sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
                                     sendCommand(TXbuffer);
                                 }
@@ -106,6 +119,7 @@ void handleButton(int received) {
             } else {
                 code=RXbuffer[1];
                 memmove(&RXbuffer,&RXbuffer[2],512);
+                writelog(LOG_NOTICE," Command parameter \"%s\"",RXbuffer);
                 processButtons(code);
             }
         }
@@ -272,6 +286,7 @@ int main(int argc, char *argv[])
 
     become_daemon=TRUE;
     ok=0;
+    verbose=0;
 
 
     signal(SIGPIPE, SIG_IGN);
@@ -285,32 +300,37 @@ int main(int argc, char *argv[])
     strcpy(NextionDriverLink,NEXTIONDRIVERLINK);
     strcpy(nextionPort,NEXTIONPORT);
 
-    while ((t = getopt(argc, argv, "dvm:n:h")) != -1) {
+    while ((t = getopt(argc, argv, "dVvm:n:h")) != -1) {
         switch (t) {
             case 'd':
                 become_daemon = FALSE;
                 break;
-            case 'v':
+            case 'V':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
                 printf("Copyright (C) 2017 ON7LDS. All rights reserved.\n\n");
                 return 0;
                 break;
-           case 'm':
+            case 'v':
+                verbose++;
+                break;
+            case 'm':
                 strncpy(NextionDriverLink,optarg,sizeof(nextionPort)-2);
                 ok++;
                 break;
-           case 'n':
+            case 'n':
                 strncpy(nextionPort,optarg,sizeof(nextionPort)-2);
                 ok++;
                 break;
-           case 'h':
-           case ':':
+            case 'h':
+            case ':':
                 printf("\nUsage: %s [-n <Nextion port serial port>] [-m <MMDVMHost port>] [-d] [-h]\n\n", argv[0]);
                 printf("  -n\tspecify the serial port where the Nextion is connected\n");
                 printf("    \t (default = %s)\n",NEXTIONDRIVERLINK);
                 printf("  -m\tspecify the virtual serial port link that will be created to connect MMDVMHost to\n");
                 printf("    \t (default = %s)\n",NEXTIONPORT);
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
+                printf("  -v\tverbose (when running in daemon mode, dumps logging to syslog)\n");
+                printf("  -V\tdisplay version and exit\n");
                 printf("  -h\tthis help.\n\n");
                 printf("Example : %s -n /dev/ttyAMA0 -m /dev/ttyNextionDriver\n\n", argv[0]);
 

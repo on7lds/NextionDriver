@@ -19,6 +19,9 @@ in the host when such a button is pressed.
 One could, for example, make a 'system' page on the Nextion with system
 info and buttons to restart MMDVMHost, reboot or poweroff the host, ...
 
+Yes, it is possible (when NextionDriver is running) to start/stop/restart
+MMDVMHost with buttons on the nextion display !
+
 
 How to change this program to your needs ?
 ==========================================
