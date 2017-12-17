@@ -129,14 +129,14 @@ void handleButton(int received) {
 
 
 void checkSerial(void) {
-/*    fd_set fds;
+    fd_set fds;
     FD_ZERO(&fds);
     FD_SET(fd2, &fds);
 
-    struct timeval t = {0, 10000};
+    struct timeval t = {0, 100000};
     int sel=select(fd2 + 1, &fds, NULL, NULL, &t);
     if (sel<=0) return;
-*/
+
     char* s;
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
@@ -280,9 +280,59 @@ static void terminate(int sig)
 }
 
 
+int readConfig(void) {
+    #define BUFFER_SIZE 200
+    int ok=0;
+
+    FILE* fp = fopen(configFile, "rt");
+    if (fp == NULL) {
+        fprintf(stderr, "Couldn't open the MMDVM.ini file - %s\n", configFile);
+        return 0;
+    }
+    char buffer[BUFFER_SIZE];
+    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
+    // since this is for Nextion displays, we assume Nextion is enabeled,
+    //  so we do not check this and only search for the screenLayout variable
+    if (buffer[0U] == '#')
+        continue;
+        if (buffer[0U] == '[') {
+            ok=0;
+            if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
+            if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
+        }
+        char* key   = strtok(buffer, " \t=\r\n");
+        if (key == NULL)
+            continue;
+
+        char* value = strtok(NULL, "\r\n");
+        if (value == NULL)
+            continue;
+
+        if (ok==1) {
+            if (strcmp(key, "RXFrequency") == 0)
+                frequency = (unsigned int)atoi(value);
+            if (strcmp(key, "Location") == 0)
+                strcpy(location,value);
+        }
+        if (ok==2) {
+            if (strcmp(key, "ScreenLayout") == 0)
+                screenLayout = (unsigned int)atoi(value);
+        }
+    }
+    fclose(fp);
+
+printf("RXfreq %d - location %s\n",frequency,location);
+    return 1;
+}
+
+
 int main(int argc, char *argv[])
 {
     int t,ok,wait;
+
+    check=1000;
+    gelezen=0;
+    screenLayout=2;
 
     become_daemon=TRUE;
     ok=0;
@@ -299,8 +349,9 @@ int main(int argc, char *argv[])
 
     strcpy(NextionDriverLink,NEXTIONDRIVERLINK);
     strcpy(nextionPort,NEXTIONPORT);
+    strcpy(configFile,CONFIGFILE);
 
-    while ((t = getopt(argc, argv, "dVvm:n:h")) != -1) {
+    while ((t = getopt(argc, argv, "dVvm:n:c:h")) != -1) {
         switch (t) {
             case 'd':
                 become_daemon = FALSE;
@@ -320,6 +371,9 @@ int main(int argc, char *argv[])
             case 'n':
                 strncpy(nextionPort,optarg,sizeof(nextionPort)-2);
                 ok++;
+                break;
+            case 'c':
+                strncpy(configFile,optarg,sizeof(configFile)-2);
                 break;
             case 'h':
             case ':':
@@ -353,8 +407,16 @@ int main(int argc, char *argv[])
     writelog(LOG_NOTICE,"NextionDriver version %s", NextionDriver_VERSION);
     writelog(LOG_NOTICE,"Copyright (C) 2017 ON7LDS. All rights reserved.");
 
+
+    if (!readConfig()) { writelog(LOG_ERR,"Config not found. Exiting."); exit(EXIT_FAILURE); };
+
+
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
-    fd2=open_input_source(nextionPort,BAUDRATE);
+    if (screenLayout==4) {
+        fd2=open_input_source(nextionPort,BAUDRATE4);
+    } else {
+        fd2=open_input_source(nextionPort,BAUDRATE3);
+    }
     ok=unlink(NextionDriverLink);
 //    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
     ok=symlink(mmdvmPort, NextionDriverLink);
@@ -385,6 +447,7 @@ int main(int argc, char *argv[])
             talkToNextion();
         }
         if (wait++>1000) { wait=0; TXbuffer[0]=0; talkToNextion(); }
+//        usleep(1000);
     }
     close(fd1);
     close(fd2);

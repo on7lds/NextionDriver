@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include "NextionDriver.h"
 
-int page;
-
 //============================================================================
 //
 //   Put your code in the subroutine below

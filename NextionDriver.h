@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "0.90"
+#define NextionDriver_VERSION "0.91"
 
 #define TRUE	1
 #define FALSE	0
@@ -28,15 +28,26 @@
 
 #define NEXTIONPORT		"/dev/ttyAMA0"
 #define NEXTIONDRIVERLINK	"/dev/ttyNextionDriver"
+#define CONFIGFILE		"/etc/MMDVM.ini"
 
-//#define BAUDRATE	B115200
-#define BAUDRATE	B9600
+#define BAUDRATE3	B9600
+#define BAUDRATE4	B115200
 
 char mux[100];
 char mmdvmPort[100];
 char nextionPort[100];
 char NextionDriverLink[100];
+char configFile[200];
+char location[200];
+unsigned int screenLayout;
 
+//for processCommands
+int gelezen;
+int check;
+int page;
+char ipaddr[100];
+unsigned int frequency;
+//------------------
 
 int fd1,fd2;
 int become_daemon;
@@ -45,5 +56,6 @@ char TXbuffer[1024],RXbuffer[1024];
 
 char* RGBtoNextionColor(int RGB);
 void sendCommand(char *cmd);
+void writelog(int level, char *fmt, ...);
 
 #endif

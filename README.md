@@ -26,6 +26,8 @@ MMDVMHost with buttons on the nextion display !
 How to change this program to your needs ?
 ==========================================
 
+The program has a lot of funtions included, but those who want to add even 
+more could do so.
 There are 2 files you could change :
 
 Data to the Nextion Display

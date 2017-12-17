@@ -30,3 +30,13 @@ is sent to the display variable 'msg'
 There is an example HMI file included.
 Press on the MMDVM logo on the main screen to go to the 'system' page
 
+The example has some other functions included:
+Temperature, CPU load and CPU freq. displayed on the rest screen.
+The load is also shown as a process bar on top of the screen, which
+will change color when the load goes high (>0.80).
+
+When using NextionDriver, you might want to choose layout 4 in the
+MMDVM.ini file.
+This way, the communication to the Nextion display will be at 112500bps
+which will give a better display refresh speed when much of the data 
+on the display changes.
