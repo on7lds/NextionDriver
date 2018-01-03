@@ -7,11 +7,15 @@ It does this by sitting between MMDVMHost and the Nextion Display.
 This program takes the commands, sent by MMDVMHost and translates,
 changes, adds or removes these commands.
 
-For example: it should be possible to connect an EA5SW layout to an
-unmodified MMDVMHost program.
+The program will have to read MMDVM.ini to know the Layout, so it
+can set the baudrate accordingly.
+
 The NextionDriver program will change the commands as needed and adds 
 extra info (i.e. temperature, TG's info, ...) and sends this to 
 the Nextion display.
+This program also checks the network interface regularly, and it will
+show the most recent IP address, so you can check is the IP address
+changed.
 
 The program also has the ability of receiving commands from the Nextion
 display. This way, one can provide buttons on a layout and do something
@@ -20,7 +24,7 @@ One could, for example, make a 'system' page on the Nextion with system
 info and buttons to restart MMDVMHost, reboot or poweroff the host, ...
 
 Yes, it is possible (when NextionDriver is running) to start/stop/restart
-MMDVMHost with buttons on the nextion display !
+MMDVMHost with buttons on the Nextion display !
 
 
 How to change this program to your needs ?
@@ -99,15 +103,17 @@ Or you can start this program in _normal mode_, then it will go to the
 background and do its work quitly (start and stop of the program
 will be logged in syslog)  
 
-The program takes at least 2 parameters. For example :  
+The program takes at least 3 parameters. For example :  
 
-./NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver
+./NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver -c /etc/MMDVM.ini
 
 - will start NextionDriver from the current directory
 - the programm will use the serial port /dev/ttyAMA0 for communication
   with the display
 - the program will create a /dev/ttyNextionDriver link as a virtual serial
   port where it will listen
+- the program will read /etc/MMDVM.ini to get some extra information
+
 
 **IMPORTANT**
 In your MMDVM.ini you go to the Nextion section and specify:
@@ -164,7 +170,7 @@ Before= mmdvmhost.service
 User=root
 WorkingDirectory=/opt/MMDVMHost
 Type=forking
-ExecStart=/opt/NextionDriver/NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver
+ExecStart=/opt/NextionDriver/NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver  -c /opt/MMDVM.ini
 ExecStop=/usr/bin/killall NextionDriver
 
 [Install]

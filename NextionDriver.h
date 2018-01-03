@@ -29,6 +29,10 @@
 #define NEXTIONPORT		"/dev/ttyAMA0"
 #define NEXTIONDRIVERLINK	"/dev/ttyNextionDriver"
 #define CONFIGFILE		"/etc/MMDVM.ini"
+#define GROUPSFILE		"groups.txt"
+#define USERSFILE		"stripped.csv"
+#define MAXGROUPS	1500
+#define MAXUSERS	120000
 
 #define BAUDRATE3	B9600
 #define BAUDRATE4	B115200
@@ -38,16 +42,34 @@ char mmdvmPort[100];
 char nextionPort[100];
 char NextionDriverLink[100];
 char configFile[200];
+char datafiledir[500];
 char location[200];
 unsigned int screenLayout;
 
-//for processCommands
+typedef struct groupdata
+{
+    int   nr;
+    char *name;
+} group_t;
+
+typedef struct userdata
+{
+    int   nr;
+    char *data1;
+    char *data2;
+    char *data3;
+    char *data4;
+    char *data5;
+} user_t;
+
 int gelezen;
 int check;
 int page;
 char ipaddr[100];
 unsigned int frequency;
-//------------------
+group_t groups[MAXGROUPS];
+user_t users[MAXUSERS];
+int nmbr_groups, nmbr_users;
 
 int fd1,fd2;
 int become_daemon;

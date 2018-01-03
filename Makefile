@@ -4,7 +4,7 @@ CXX     = g++
 CFLAGS  = -Wall -O2 -D_GNU_SOURCE
 
 SOURCE = \
-		NextionDriver.c processCommands.c processButtons.c
+		NextionDriver.c processCommands.c processButtons.c helpers.c
 
 all:		clean NextionDriver
 

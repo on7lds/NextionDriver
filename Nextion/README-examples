@@ -1,0 +1,86 @@
+Nextion Display Layout Examples
+===============================
+
+The examples in this directory give some ideas of what can be done.
+
+They all need MMDVMHost screenLayout 3 or 4
+With this layout, MMDVMHost activates the click event of S0 on the
+active page to start user code on your display.
+
+
+NX4832T035-L3-ND.HMI
+--------------------
+pressing on the logo on the main screen activates page 'system' 
+where some buttons are defined: 
+	* start & stop MMDVMHost
+	* get the date from the host and display it
+	* send a command wit and without parameters to NextionDriver
+
+On the DMR page
+	* upon receiving the TA, TA length and colour are changed 
+	* when GPS data are received, these are showed in the middle of
+		the screen and prepended with the slot number from where
+		these coordinates came.
+	NOTE: receiving GPS data is not yet implemented in the main code,
+			so it requires a patched MMDVMHost.
+
+		
+NX4832T035-L3-ND-HotSpot-1.HMI
+------------------------------
+pressing on the logo on the main screen activates page 'system' 
+
+The main screen has a processor load bar that is green when load<80
+and orange when >80
+CPU temperature, frequency and the load in numbers are displayed
+The RX freq. is displayed
+The location as set in MMDVM.ini is displayed
+
+
+NX4832T035-L3-ND-HotSpot-2.HMI
+------------------------------
+pressing on the logo on the main screen activates page 'system' 
+On the system page, you can
+	* start & stop MMDVMHost
+	* Reboot or poweroff the host
+	* Set the display baudrate at 9600 or 115200
+	* set the alternate speed (see below)
+	
+The main page alternates with the 'info' page, 
+the information of the main page of example NX4832T035-L3-ND-HotSpot-2
+is divided over the main page and the info page.
+
+DMR page is somewhat changed (slot 1 info removed) and wrap of GPS
+data is demonstrated
+
+
+NX4832T035-L3-ND-HotSpot-3.HMI
+------------------------------
+pressing on the logo on the main screen activates page 'system' 
+On the system page, you can
+	* start & stop MMDVMHost
+	* Reboot or poweroff the host
+	* Set the display baudrate at 9600 or 115200
+	* set the alternate speed (see below)
+	
+The main page alternates with the 'info' page, 
+the information of the main page of example NX4832T035-L3-ND-HotSpot-2
+is divided over the main page and the info page.
+
+On the DMR page, more info about the user is shown (Call, name, city, country)
+This requires the DMR Id Lookup in the MMDVM.ini file to be OFF !
+In the [DMR Id Lookup] section , be sure to comment the line with the
+location of the DMRIds.dat file, for example :
+#File=/opt/MMDVMHost/DMRIds.dat
+
+and you have to place a file 'stripped.csv' (the same as used for md380tools)
+in the directory of the NextionDriver program.
+
+
+NX4832T035-L3-ND-HotSpot-4.HMI
+------------------------------
+Same functionality as above, but as extra: 
+On the DMR screen, the current *and* the previous user are displayed
+  This is done by copying the data from the ID/TA field to these
+   fields at call end.
+
+

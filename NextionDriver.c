@@ -33,7 +33,7 @@
 #include "NextionDriver.h"
 #include "processCommands.h"
 #include "processButtons.h"
-
+#include "helpers.h"
 
 const char ENDMRKR[3]="\xFF\xFF\xFF";
 int verbose, RXtail=0;
@@ -154,6 +154,7 @@ void checkSerial(void) {
             s=strstr(RXbuffertemp,ENDMRKR);
         }
     }
+    if (RXtail>100) RXtail=0;
 }
 
 
@@ -178,8 +179,6 @@ void showRXbuffer(int buflen) {
     }
     if (!become_daemon)  {printf("\n");fflush(NULL);}
 }
-
-
 
 
 int open_input_source(char* devicename, long BAUD)
@@ -280,52 +279,6 @@ static void terminate(int sig)
 }
 
 
-int readConfig(void) {
-    #define BUFFER_SIZE 200
-    int ok=0;
-
-    FILE* fp = fopen(configFile, "rt");
-    if (fp == NULL) {
-        fprintf(stderr, "Couldn't open the MMDVM.ini file - %s\n", configFile);
-        return 0;
-    }
-    char buffer[BUFFER_SIZE];
-    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
-    // since this is for Nextion displays, we assume Nextion is enabeled,
-    //  so we do not check this and only search for the screenLayout variable
-    if (buffer[0U] == '#')
-        continue;
-        if (buffer[0U] == '[') {
-            ok=0;
-            if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
-            if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
-        }
-        char* key   = strtok(buffer, " \t=\r\n");
-        if (key == NULL)
-            continue;
-
-        char* value = strtok(NULL, "\r\n");
-        if (value == NULL)
-            continue;
-
-        if (ok==1) {
-            if (strcmp(key, "RXFrequency") == 0)
-                frequency = (unsigned int)atoi(value);
-            if (strcmp(key, "Location") == 0)
-                strcpy(location,value);
-        }
-        if (ok==2) {
-            if (strcmp(key, "ScreenLayout") == 0)
-                screenLayout = (unsigned int)atoi(value);
-        }
-    }
-    fclose(fp);
-
-printf("RXfreq %d - location %s\n",frequency,location);
-    return 1;
-}
-
-
 int main(int argc, char *argv[])
 {
     int t,ok,wait;
@@ -350,8 +303,9 @@ int main(int argc, char *argv[])
     strcpy(NextionDriverLink,NEXTIONDRIVERLINK);
     strcpy(nextionPort,NEXTIONPORT);
     strcpy(configFile,CONFIGFILE);
+    datafiledir[0]=0;
 
-    while ((t = getopt(argc, argv, "dVvm:n:c:h")) != -1) {
+    while ((t = getopt(argc, argv, "dVvm:n:c:f:h")) != -1) {
         switch (t) {
             case 'd':
                 become_daemon = FALSE;
@@ -375,6 +329,9 @@ int main(int argc, char *argv[])
             case 'c':
                 strncpy(configFile,optarg,sizeof(configFile)-2);
                 break;
+            case 'f':
+                strncpy(datafiledir,optarg,sizeof(datafiledir)-2);
+                break;
             case 'h':
             case ':':
                 printf("\nUsage: %s [-n <Nextion port serial port>] [-m <MMDVMHost port>] [-d] [-h]\n\n", argv[0]);
@@ -382,6 +339,7 @@ int main(int argc, char *argv[])
                 printf("    \t (default = %s)\n",NEXTIONDRIVERLINK);
                 printf("  -m\tspecify the virtual serial port link that will be created to connect MMDVMHost to\n");
                 printf("    \t (default = %s)\n",NEXTIONPORT);
+                printf("  -f\tspecify the directory with data files (groups, users)");
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
                 printf("  -v\tverbose (when running in daemon mode, dumps logging to syslog)\n");
                 printf("  -V\tdisplay version and exit\n");
@@ -407,8 +365,31 @@ int main(int argc, char *argv[])
     writelog(LOG_NOTICE,"NextionDriver version %s", NextionDriver_VERSION);
     writelog(LOG_NOTICE,"Copyright (C) 2017 ON7LDS. All rights reserved.");
 
+    if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
-    if (!readConfig()) { writelog(LOG_ERR,"Config not found. Exiting."); exit(EXIT_FAILURE); };
+    if (strlen(datafiledir)<3) {
+        ssize_t len;
+        if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
+            while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
+                datafiledir[strlen(datafiledir)-1]=0;
+            }
+        }
+    }
+    writelog(LOG_NOTICE,"Data files directory: %s", datafiledir);
+    nmbr_groups=0;
+    readGroups();
+    nmbr_users=0;
+    readUserDB();
+
+/*
+int i;
+printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
+for (i=0;i<nmbr_groups;i++)printf("%5d : %s\n",groups[i].nr, groups[i].name);
+printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
+for (i=0;i<nmbr_users;i++)printf("%5d : [%s] [%s] [%s] [%s]\n",users[i].nr,users[i].data1,users[i].data2,users[i].data3,users[i].data4);
+printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
+*/
+    writelog(LOG_NOTICE,"Started with screenLayout %d", screenLayout);
 
 
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));

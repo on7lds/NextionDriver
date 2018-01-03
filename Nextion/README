@@ -1,7 +1,7 @@
 Nextion Display Layout for NextionDriver
 ========================================
 
-When you use NextionDriver without modifications you already can make
+Even when using NextionDriver without modifications, you can make
 a layout with buttons. Make the Touch Release Event with following code:
 
 * when there is a command
@@ -27,16 +27,6 @@ This could be, for example, 'service mmdvmhost stop' or 'service mmdvmhost start
 the 'linux command' is executed and the __FIRST__ line of the result
 is sent to the display variable 'msg'
 
-There is an example HMI file included.
-Press on the MMDVM logo on the main screen to go to the 'system' page
 
-The example has some other functions included:
-Temperature, CPU load and CPU freq. displayed on the rest screen.
-The load is also shown as a process bar on top of the screen, which
-will change color when the load goes high (>0.80).
+There are some example HMI files included.
 
-When using NextionDriver, you might want to choose layout 4 in the
-MMDVM.ini file.
-This way, the communication to the Nextion display will be at 112500bps
-which will give a better display refresh speed when much of the data 
-on the display changes.

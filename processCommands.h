@@ -23,4 +23,7 @@
 void processCommands();
 
 
+void getNetworkInterface(char* info);
+int readConfig(void);
+
 #endif

@@ -23,5 +23,4 @@
 
 void processButtons(unsigned char code);
 
-
 #endif

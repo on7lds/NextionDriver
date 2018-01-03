@@ -28,15 +28,12 @@
 #include <syslog.h>
 
 #include "NextionDriver.h"
+#include "helpers.h"
 
-
-
-
-void getNetworkInterface(char* info);
 
 //============================================================================
 //
-//   Put your code in the subroutine below
+//   If needed, put your code in the subroutine below
 //
 //============================================================================
 void processCommands() {
@@ -45,20 +42,24 @@ void processCommands() {
 //       process commands
 //-------------------------------
 
-
-// ---------------------------------------------------------------------
+//---------------------------------------------------------------------
+//
 //   You can study these examples to get an idea of how to program
 //   the extra functionality
-// ---------------------------------------------------------------------
+//
+//---------------------------------------------------------------------
+//
+//   When using colors, you can use the function
+//    RGBtoNextionColor( RGBcolor)
+//
+//---------------------------------------------------------------------
 
-// When using colors, you can use the function 
-//  RGBtoNextionColor( RGBcolor)
-
-// ---------------------------------------------------------------------
 
     char text[100];
 
-    //the 'page' variable holds the last selected page
+    //---------------------------------------------------
+    // the 'page' variable holds the last selected page
+    //---------------------------------------------------
     if (strcmp(TXbuffer,"page MMDVM")==0) {
         page=0;
     }
@@ -76,14 +77,27 @@ void processCommands() {
     }
 
 
-    // ---------------- Rest page ----------------
+    //--------------------------------------------------------------
+    //                  Rest page
+    //--------------------------------------------------------------
+    //  * remove Freq and time when stopping
+    //  * regularly check IP interface and send to display
+    //  * get CPU temperature & frequency & load average 
+    //       and send to display
+    //  * send RX frequency and location (info from MMDVM.ini)
+    //--------------------------------------------------------------
+    if ((page==0)&&(strstr(TXbuffer,"MMDVM STOPPED")>0)){
+        sprintf(TXbuffer, "t23.txt=\"\"");
+        sendCommand(text);
+        sprintf(TXbuffer, "t2.txt=\"\"");
+    }
     // if date/time is sent, check IP interface from time to time:
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)) {
         getNetworkInterface(ipaddr);
         sprintf(TXbuffer, "t3.txt=\"%s\"", ipaddr);
         check=0;
     }
-    // check temp & CPU freq (also not to often)
+    // check temp & CPU freq (also not too often)
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==0)) {
         FILE *deviceInfoFile;
         double val;
@@ -115,13 +129,11 @@ void processCommands() {
             sprintf(text, "t22.txt=\"?\"");
             sendCommand(text);
             sprintf(text, "cpuload.val=0");
-            sendCommand(text);
         } else {
             fscanf (deviceInfoFile, "%lf", &val);
             sprintf(text, "t22.txt=\"%0.2f\"", val);
             sendCommand(text);
             sprintf(text, "cpuload.val=%d", (int)(val*100));
-            sendCommand(text);
             fclose(deviceInfoFile);
         }
         sendCommand(text);
@@ -137,106 +149,48 @@ void processCommands() {
         sendCommand(text);
 
         //Done
-        sprintf(text, "MMDVM.cmd.val=20");
-        sendCommand(text);
-        sprintf(text, "MMDVM.status.val=18");
+        sprintf(text, "MMDVM.status.val=20");
         sendCommand(text);
         sendCommand("click S0,1");
 
     }
 
-    // Change 'Listening' in 'DMR RX if you would want to
-/*
-    if ((page==1)&&(strcmp(TXbuffer,"t2.txt=\"2 Listening\"")==0)) {
-        strcpy(TXbuffer,"t2.txt=\"  DMR RX\"");
+    //send TG name if found
+    if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
+        char *TGname;
+        int nr,TGindex;
+        nr=atoi(&TXbuffer[10]);
+        TGindex=search_group(nr,groups,0,nmbr_groups-1);
+            sendCommand(TXbuffer);
+        if (TGindex>=0) {
+            TGname=groups[TGindex].name;
+            sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
+        } else sprintf(TXbuffer,"t8.txt=\"\"");
     }
-*/
-}
 
+    //send user data if found
+    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)) {
+        int nr,user;
 
-void getNetworkInterface(char* info) {
-	const unsigned int IFLISTSIZ = 25U;
-	int n;
+        nr=atoi(&TXbuffer[12]);
+        user=search_user(nr,users,0,nmbr_users-1);
+        if (user>=0) {
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t13.txt=\"%s\"",users[user].data1);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t14.txt=\"%s\"",users[user].data2);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t15.txt=\"%s\"",users[user].data3);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t16.txt=\"%s\"",users[user].data4);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t17.txt=\"%s\"",users[user].data5);
+            sendCommand(TXbuffer);
 
-	FILE* fp = fopen("/proc/net/route" , "r");
-	if (fp == NULL) {
-		writelog(LOG_ERR,"Unabled to open /proc/route");
-		return;
-	}
-
-	char* dflt = NULL;
-
-	char line[100U];
-	while (fgets(line, 100U, fp)) {
-		char* p1 = strtok(line , " \t");
-		char* p2 = strtok(NULL , " \t");
-
-		if (p1 != NULL && p2 != NULL) {
-			if (strcmp(p2, "00000000") == 0) {
-				dflt = p1;
-				break;
-			}
-		}
-	}
-
-	fclose(fp);
-
-	if (dflt == NULL) {
-		writelog(LOG_ERR,"Unable to find the default route");
-		return;
-	}
-
-	char interfacelist[IFLISTSIZ][50+INET6_ADDRSTRLEN];
-	for (n = 0U; n < IFLISTSIZ; n++)
-		interfacelist[n][0] = 0;
-
-	struct ifaddrs* ifaddr;
-	if (getifaddrs(&ifaddr) == -1) {
-		writelog(LOG_ERR,"getifaddrs failure");
-		return;
-	}
-
-	unsigned int ifnr = 0U;
-	struct ifaddrs* ifa;
-	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr == NULL)
-			continue;
-
-		int family = ifa->ifa_addr->sa_family;
-		if (family == AF_INET || family == AF_INET6) {
-			char host[NI_MAXHOST];
-			int s = getnameinfo(ifa->ifa_addr, family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-			if (s != 0) {
-				writelog(LOG_ERR,"getnameinfo() failed: %s\n", gai_strerror(s));
-				continue;
-			}
-
-			if (family == AF_INET) {
-				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
-			} else {
-				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
-			}
-
-			ifnr++;
-		}
-	}
-
-	freeifaddrs(ifaddr);
-
-	writelog(LOG_INFO," Default interface is : %s" , dflt);
-
-	for (n = 0U; n < ifnr; n++) {
-		char* p = strchr(interfacelist[n], '%');
-		if (p != NULL)
-			*p = 0;
-
-		if (strstr(interfacelist[n], dflt) != 0) {
-			strcpy((char*)info, interfacelist[n]);
-			break;
-		}
-	}
-
+            sprintf(text, "MMDVM.status.val=78");
+            sendCommand(text);
+            sendCommand("click S0,1");
+        }
+    }
 }
 

@@ -1,16 +1,15 @@
 Nextion Display Layout for NextionDriver
 ========================================
 
-The NextionDriver intoduces some supplementary fiels for linux hosts
+The NextionDriver introduces some supplementary fields for linux hosts
 (as most hotspots are)
 
 It is advisable to switch to layout 4, setting your display baudrate to 115200bps
-If not, screen updates wil be rather slow...
+If not, screen updates will be rather slow...
 
 I know, the example display in this directory is not a nice, beautiful layout.
 It is a basic layout to show the possibilities.
-Making someting nice of it is your job ;-)
-
+Making something nice of it is your job ;-)
 
 
 Fields (and their numbers) on the pages, used by NextionDriver
@@ -21,8 +20,19 @@ t20 : CPU temp
 t21 : CPU freq
 t22 : system load
 cpuload : integer value of the system load in %
-t23 : Hotspot RX frequency
-t24 : Hotspot location
+t23 : Hotspot RX frequency (from MMDVM.ini)
+t24 : Hotspot location (from MMDVM.ini)
 
-cmd value 20 and status code 18 will be sent once after sending these values
+status code 20 will be sent once after sending these values
 
+
+DMR
+t8 : TG name
+
+t13 : user data field 1
+t14: user data field 2
+t15: user data field 3
+t16: user data field 4
+t17: user data field 5
+
+status code 78 will be sent after sending the user data
