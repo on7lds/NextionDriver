@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ void getNetworkInterface(char* info);
 int readConfig(void);
 void readGroups(void);
 void readUserDB(void);
+void print_users(void);
 
 int search_group(int nr, group_t a[], int m, int n);
 int search_user(int nr, user_t a[], int m, int n);

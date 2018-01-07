@@ -1,6 +1,10 @@
 Nextion Display Layout for NextionDriver
 ========================================
 
+There are some example HMI files included.
+Please also read the other README files !
+
+
 Even when using NextionDriver without modifications, you can make
 a layout with buttons. Make the Touch Release Event with following code:
 
@@ -27,6 +31,4 @@ This could be, for example, 'service mmdvmhost stop' or 'service mmdvmhost start
 the 'linux command' is executed and the __FIRST__ line of the result
 is sent to the display variable 'msg'
 
-
-There are some example HMI files included.
 

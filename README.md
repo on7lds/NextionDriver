@@ -13,9 +13,14 @@ can set the baudrate accordingly.
 The NextionDriver program will change the commands as needed and adds 
 extra info (i.e. temperature, TG's info, ...) and sends this to 
 the Nextion display.
+
 This program also checks the network interface regularly, and it will
 show the most recent IP address, so you can check is the IP address
-changed.
+changed.  
+
+When the files 'groups.txt' and 'stripped.csv' are present, user and
+talkgroup names will be looked up and sent to the display.  
+NOTE : both files have to be sorted in ascending ID order !
 
 The program also has the ability of receiving commands from the Nextion
 display. This way, one can provide buttons on a layout and do something
@@ -25,67 +30,6 @@ info and buttons to restart MMDVMHost, reboot or poweroff the host, ...
 
 Yes, it is possible (when NextionDriver is running) to start/stop/restart
 MMDVMHost with buttons on the Nextion display !
-
-
-How to change this program to your needs ?
-==========================================
-
-The program has a lot of funtions included, but those who want to add even 
-more could do so.
-There are 2 files you could change :
-
-Data to the Nextion Display
----------------------------
-the routine process() in processCommands.c
-
-* this routine is called for each command, sent by MMDVMHost. The command
-  which is sent, is in RXbuffer (without the trailing 0xFF 0xFF 0xFF).
-* the RXbuffer holds a string, so it is not possible to send 0x00 characters
-* you can inspect, change or add commands, but keep in mind that at the end of
-  the routine the RXbuffer (if not empty) is sent to the Nextion display
-  (empty the buffer if you do not want to send something to the display)
-
-Data from the Nextion Display
------------------------------
-the routine processButtons() in processButtons.c
-
-* This routine is called whenever there is an event sent from the display.
-  For this you have to make a button on the Nextion display which has in its
-  Touch Release Event following code:  
-   printh 2A  
-   printh (code nr)  
-   printh FF  
-   printh FF  
-   printh FF  
-
-where (code nr) is a number 0x01...0xEF (look sharp: 0xEF NOT 0xFF !)
-The command is in the RXbuffer (without the trailing 0xFF 0xFF 0xFF).
-
-Then there are some special codes :
-
-* when there is a command  
-   printh 2A  
-   printh F0  
-   printh (linux command)  
-   printh FF  
-   printh FF  
-   printh FF  
-  
-the 'linux command' is executed  
-  
-* When there is a command  
-   printh 2A  
-   printh F1  
-   printh (linux command)  
-   printh FF  
-   printh FF  
-   printh FF  
-  
-the 'linux command' is executed and the __FIRST__ line of the result
-is sent to the display variable 'msg'  
-
-There is an example HMI file included.   
-Press on the MMDVM logo on the main screen to go to the 'system' page  
 
 
 How to use this program ?
@@ -100,7 +44,7 @@ you should have a binary
 You can start this program in _debug mode_, then all commands that are sent
 to the display, will be printed to stdout.
 Or you can start this program in _normal mode_, then it will go to the 
-background and do its work quitly (start and stop of the program
+background and do its work quietly (start and stop of the program
 will be logged in syslog)  
 
 The program takes at least 3 parameters. For example :  
@@ -108,7 +52,7 @@ The program takes at least 3 parameters. For example :
 ./NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver -c /etc/MMDVM.ini
 
 - will start NextionDriver from the current directory
-- the programm will use the serial port /dev/ttyAMA0 for communication
+- the program will use the serial port /dev/ttyAMA0 for communication
   with the display
 - the program will create a /dev/ttyNextionDriver link as a virtual serial
   port where it will listen
@@ -176,3 +120,63 @@ ExecStop=/usr/bin/killall NextionDriver
 [Install]
 WantedBy=multi-user.target
 ```
+
+How to change this program to your needs ?
+==========================================
+
+The program has a lot of functions included, but those who want to add even 
+more could do so.
+There are 2 files you could change :
+
+Data to the Nextion Display
+---------------------------
+the routine process() in processCommands.c
+
+* this routine is called for each command, sent by MMDVMHost. The command
+  which is sent, is in RXbuffer (without the trailing 0xFF 0xFF 0xFF).
+* the RXbuffer holds a string, so it is not possible to send 0x00 characters
+* you can inspect, change or add commands, but keep in mind that at the end of
+  the routine the RXbuffer (if not empty) is sent to the Nextion display
+  (empty the buffer if you do not want to send something to the display)
+
+Data from the Nextion Display
+-----------------------------
+the routine processButtons() in processButtons.c
+
+* This routine is called whenever there is an event sent from the display.
+  For this you have to make a button on the Nextion display which has in its
+  Touch Release Event following code:  
+   printh 2A  
+   printh (code nr)  
+   printh FF  
+   printh FF  
+   printh FF  
+
+where (code nr) is a number 0x01...0xEF (look sharp: 0xEF NOT 0xFF !)
+The command is in the RXbuffer (without the trailing 0xFF 0xFF 0xFF).
+
+Then there are some special codes :
+
+* when there is a command  
+   printh 2A  
+   printh F0  
+   printh (linux command)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+the 'linux command' is executed  
+  
+* When there is a command  
+   printh 2A  
+   printh F1  
+   printh (linux command)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+the 'linux command' is executed and the __FIRST__ line of the result
+is sent to the display variable 'msg'  
+
+There is an example HMI file included.   
+Press on the MMDVM logo on the main screen to go to the 'system' page  

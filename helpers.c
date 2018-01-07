@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -90,10 +90,10 @@ void getNetworkInterface(char* info) {
 
 			if (family == AF_INET) {
 				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
+				writelog(LOG_NOTICE," IPv4: %s", interfacelist[ifnr]);
 			} else {
 				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
+				writelog(LOG_NOTICE," IPv6: %s", interfacelist[ifnr]);
 			}
 
 			ifnr++;
@@ -102,7 +102,7 @@ void getNetworkInterface(char* info) {
 
 	freeifaddrs(ifaddr);
 
-	writelog(LOG_INFO," Default interface is : %s" , dflt);
+	writelog(LOG_NOTICE," Default interface is : %s" , dflt);
 
 	for (n = 0U; n < ifnr; n++) {
 		char* p = strchr(interfacelist[n], '%');
@@ -135,6 +135,7 @@ int readConfig(void) {
             ok=0;
             if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
             if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
+            if (strncmp(buffer, "[Log]", 5U) == 0) ok=3;
         }
         char* key   = strtok(buffer, " \t=\r\n");
         if (key == NULL)
@@ -154,6 +155,12 @@ int readConfig(void) {
             if (strcmp(key, "ScreenLayout") == 0)
                 screenLayout = (unsigned int)atoi(value);
         }
+/*
+        if (ok==3) {
+            if (strcmp(key, "FileLevel") == 0)
+                loglevel = (unsigned int)atoi(value);
+        }
+*/
     }
     fclose(fp);
 
@@ -163,11 +170,15 @@ int readConfig(void) {
 
 int search_group(int nr, group_t a[], int m, int n)
 {
-    writelog(LOG_NOTICE,"--- Group search for %d (%d - %d)",nr,m,n);
+    writelog(LOG_DEBUG,"--- Group search for %d (%d - %d)",nr,m,n);
     if (nr==0) return -1;
     if (m>n) return -1;
 
     if(m == n) {
+        if(a[n].nr == nr) { return n; } else  return -1;
+    }
+
+    if((n-m)<2) {
         if(a[n].nr == nr) { return n; } else  return -1;
     }
 
@@ -184,11 +195,12 @@ int search_group(int nr, group_t a[], int m, int n)
 
 int search_user(int nr, user_t a[], int m, int n)
 {
-    writelog(LOG_NOTICE,"--- User search for %d (%d - %d)",nr,m,n);
+    writelog(LOG_DEBUG,"--- User search for %d (%d [%d] - %d [%d] )",nr,m,a[m].nr,n,a[n].nr);
+    //usleep(200000);
     if (nr==0) return -1;
     if (m>n) return -1;
 
-    if(m == n) {
+    if((n-m)<2) {
         if(a[n].nr == nr) { return n; } else  return -1;
     }
 
@@ -207,14 +219,14 @@ void print_groups() {
     int i;
 
     for (i=0; i<nmbr_groups;i++)
-        printf("%d = [%s]\n", groups[i].nr, groups[i].name);
+        printf("Group %5d: %d = [%s]\n", i, groups[i].nr, groups[i].name);
 }
 
 void print_users() {
     int i;
 
     for (i=0; i<nmbr_users;i++)
-        printf("%d = [%s][%s][%s][%s][%s]\n", users[i].nr, users[i].data1, users[i].data2, users[i].data3, users[i].data4, users[i].data5);
+        printf("User %5d: %d = [%s][%s][%s][%s][%s]\n", i, users[i].nr, users[i].data1, users[i].data2, users[i].data3, users[i].data4, users[i].data5);
 }
 
 

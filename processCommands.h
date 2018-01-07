@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -21,9 +21,5 @@
 
 
 void processCommands();
-
-
-void getNetworkInterface(char* info);
-int readConfig(void);
 
 #endif

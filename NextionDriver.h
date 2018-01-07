@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "0.91"
+#define NextionDriver_VERSION "1.00"
 
 #define TRUE	1
 #define FALSE	0

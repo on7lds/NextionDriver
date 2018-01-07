@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include "NextionDriver.h"
+#include "basicFunctions.h"
 #include "processCommands.h"
 #include "processButtons.h"
 #include "helpers.h"
@@ -59,7 +60,7 @@ void writelog(int level, char *fmt, ...)
     vsnprintf(str, 1024, fmt, args);
     va_end(args);
 
-    if ( (become_daemon==TRUE) || (verbose>0) ) {
+    if ( (become_daemon==TRUE) && (verbose>(level-4)) ) {
         str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
 		if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
     } else {
@@ -75,7 +76,7 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        writelog(LOG_NOTICE,"TX: %s",cmd);
+        if (!become_daemon) writelog(LOG_NOTICE,"TX: %s",cmd);
     }
     if (!become_daemon)fflush(NULL);
 }
@@ -160,6 +161,7 @@ void checkSerial(void) {
 
 
 void talkToNextion(void) {
+    basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
     checkSerial();
@@ -271,7 +273,7 @@ static void terminate(int sig)
 {
     char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
 
-    writelog(LOG_NOTICE, "NextionDriver V%s terminated on signal %s (%s)",NextionDriver_VERSION,signame[sig],strsignal(sig));
+    writelog(LOG_ERR, "NextionDriver V%s terminated on signal %s (%s)",NextionDriver_VERSION,signame[sig],strsignal(sig));
     close(fd1);
     close(fd2);
     unlink(NextionDriverLink);
@@ -362,8 +364,8 @@ int main(int argc, char *argv[])
         go_daemon();
     } else printf("Starting in console mode...\n");
 
-    writelog(LOG_NOTICE,"NextionDriver version %s", NextionDriver_VERSION);
-    writelog(LOG_NOTICE,"Copyright (C) 2017 ON7LDS. All rights reserved.");
+    writelog(LOG_ERR,"NextionDriver version %s", NextionDriver_VERSION);
+    writelog(LOG_ERR,"Copyright (C) 2017 ON7LDS. All rights reserved.");
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
@@ -375,22 +377,13 @@ int main(int argc, char *argv[])
             }
         }
     }
-    writelog(LOG_NOTICE,"Data files directory: %s", datafiledir);
-    nmbr_groups=0;
+    writelog(LOG_ERR,"Data files directory: %s", datafiledir);
+
     readGroups();
-    nmbr_users=0;
     readUserDB();
 
-/*
-int i;
-printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
-for (i=0;i<nmbr_groups;i++)printf("%5d : %s\n",groups[i].nr, groups[i].name);
-printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
-for (i=0;i<nmbr_users;i++)printf("%5d : [%s] [%s] [%s] [%s]\n",users[i].nr,users[i].data1,users[i].data2,users[i].data3,users[i].data4);
-printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
-*/
-    writelog(LOG_NOTICE,"Started with screenLayout %d", screenLayout);
-
+    writelog(LOG_ERR,"Started with screenLayout %d", screenLayout);
+    writelog(LOG_ERR,"Started with verbose level %d", verbose);
 
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
     if (screenLayout==4) {
@@ -402,7 +395,7 @@ printf( "$$$$$$$$$$$$$$$$$$$$$$\n");
 //    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
     ok=symlink(mmdvmPort, NextionDriverLink);
     if (ok!=0) { writelog(LOG_ERR,"Link %s could not be created (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
-    writelog(LOG_NOTICE,"%s (=%s) <=> %s",NextionDriverLink,mmdvmPort,nextionPort);
+    writelog(LOG_ERR,"%s (=%s) <=> %s",NextionDriverLink,mmdvmPort,nextionPort);
 
     t=0; wait=0; int r=0;
     char buffer[1024];
