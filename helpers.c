@@ -379,8 +379,11 @@ void readUserDB(void){
             key[i++]=next;
             next = strtok(NULL,",");
         }
-//        printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
-        insert_user(users, nr, key[1], key[2], key[3], key[4], key[6]);
+        if (strlen(key[1])>1) {
+//            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
+//            usleep(100000);
+            insert_user(users, nr, key[1], key[2], key[3], key[4], key[6]);
+        }
     }
     fclose(fp);
     writelog(LOG_INFO,"Read %d users.",nmbr_users);

@@ -143,10 +143,10 @@ void basicFunctions() {
     if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
         char *TGname;
         int nr,TGindex;
-        if (TXbuffer[1]==' ')
-            nr=atoi(&TXbuffer[10]);
-        else
+        if ((TXbuffer[8]>='0')&&(TXbuffer[8]<='9'))
             nr=atoi(&TXbuffer[8]);
+        else
+            nr=atoi(&TXbuffer[10]);
         TGindex=search_group(nr,groups,0,nmbr_groups-1);
         if (TGindex>=0) {
             TGname=groups[TGindex].name;
