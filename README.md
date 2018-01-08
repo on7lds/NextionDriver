@@ -20,7 +20,10 @@ changed.
 
 When the files 'groups.txt' and 'stripped.csv' are present, user and
 talkgroup names will be looked up and sent to the display.  
-NOTE : both files have to be sorted in ascending ID order !
+NOTE1 : both files have to be sorted in ascending ID order !  
+NOTE2 : for the user data lookup to work, you MUST switch off 
+         the DMRID lookup of MMDVMHost (check README-examples
+         in the Nextion subdirectory)
 
 The program also has the ability of receiving commands from the Nextion
 display. This way, one can provide buttons on a layout and do something

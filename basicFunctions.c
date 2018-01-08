@@ -65,11 +65,12 @@ void basicFunctions() {
     //  * send RX frequency and location (info from MMDVM.ini)
     //--------------------------------------------------------------
     if ((page==0)&&(strstr(TXbuffer,"MMDVM STOPPED")>0)){
-        sprintf(TXbuffer, "t23.txt=\"\"");
+        sprintf(TXbuffer, "t30.txt=\"\"");
         sendCommand(text);
         sprintf(TXbuffer, "t2.txt=\"\"");
     }
     // if date/time is sent, check IP interface from time to time:
+    //   and disk free in %
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)) {
         getNetworkInterface(ipaddr);
         sprintf(TXbuffer, "t3.txt=\"%s\"", ipaddr);
@@ -115,15 +116,20 @@ void basicFunctions() {
             fclose(deviceInfoFile);
         }
         sendCommand(text);
+
+        //Disk free %
+        sprintf(text, "t23.txt=\"%d\"",getDiskFree());
+        sendCommand(text);
+
         //RXFrequency
         float fx;
         fx=frequency;
         fx/=1000000;
-        sprintf(text, "t23.txt=\"%3.4fMHz\"",fx);
+        sprintf(text, "t30.txt=\"%3.4fMHz\"",fx);
         sendCommand(text);
 
         //Location
-        sprintf(text, "t24.txt=\"%s\"",location);
+        sprintf(text, "t31.txt=\"%s\"",location);
         sendCommand(text);
 
         //Done
@@ -137,13 +143,22 @@ void basicFunctions() {
     if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
         char *TGname;
         int nr,TGindex;
-        nr=atoi(&TXbuffer[10]);
+        if (TXbuffer[1]==' ')
+            nr=atoi(&TXbuffer[10]);
+        else
+            nr=atoi(&TXbuffer[8]);
         TGindex=search_group(nr,groups,0,nmbr_groups-1);
-            sendCommand(TXbuffer);
         if (TGindex>=0) {
             TGname=groups[TGindex].name;
             sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
-        } else sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
+        } else if (TGindex<0) {
+            //is it maybe a user private call ?
+            TGindex=search_user(nr,users,0,nmbr_users-1);
+            if (TGindex>0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
+        } else {
+            sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
+        }
+        sendCommand(TXbuffer);
     }
 
     //send user data if found

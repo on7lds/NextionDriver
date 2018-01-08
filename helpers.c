@@ -26,6 +26,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <syslog.h>
+#include <sys/vfs.h>
 
 #include "NextionDriver.h"
 
@@ -166,6 +167,29 @@ int readConfig(void) {
 
     return 1;
 }
+
+
+int getDiskFree(void){
+  struct statfs sStats;
+  char fname[250];
+
+  strcpy(fname,datafiledir);
+  strcat(fname,GROUPSFILE);
+
+  if( statfs( fname, &sStats ) == -1 )
+    return -1;
+  else
+  {
+    int size,free;
+    //sizes in MB;
+    size=((sStats.f_blocks/1024)*sStats.f_bsize)/1024;
+    free=((sStats.f_bavail/1024)*sStats.f_bsize)/1024;
+    // in PCT
+    return (100*free)/size;
+  }
+}
+
+
 
 
 int search_group(int nr, group_t a[], int m, int n)
@@ -334,40 +358,29 @@ void readUserDB(void){
     }
 
     char buffer[BUFFER_SZ];
-    int nr;
+    int nr,i;
+    char *key[8],*next;
+    char *niks = "";
 
     while (fgets(buffer, BUFFER_SZ, fp) != NULL) {
 
         buffer[strlen(buffer)-1]=0;
-//        printf("Line = [%s]\n",buffer);
 
         nr=0;
-        char *key1, *key2, *key3, *key4, *key5;
 
-        key1   = strtok(buffer, ",");
-        if (key1 == NULL) continue;
-        nr=atoi(key1);
+        next = strtok(buffer, ",");
+        if (next == NULL) continue;
+        nr=atoi(next);
 
-        key1   = strtok(NULL, ",");
-        if (key1 == NULL) continue;
-
-        key2   = strtok(NULL, ",");
-        if (key2 == NULL) continue;
-
-        key3   = strtok(NULL, ",");
-        if (key3 == NULL) continue;
-
-        key4   = strtok(NULL, ",");
-        if (key4 == NULL) continue;
-
-        key5   = strtok(NULL, ",");
-        if (key5 == NULL) continue;
-        key5   = strtok(NULL, ",");
-        if (key5 == NULL) continue;
-
-
-//        printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key1, key2, key3, key4, key5);fflush(NULL);
-        insert_user(users, nr, key1, key2, key3, key4, key5);
+        for(i=0;i<8;i++)key[i]=niks;
+        i=0;
+        while((i<7)&&(next != NULL))
+        {
+            key[i++]=next;
+            next = strtok(NULL,",");
+        }
+//        printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
+        insert_user(users, nr, key[1], key[2], key[3], key[4], key[6]);
     }
     fclose(fp);
     writelog(LOG_INFO,"Read %d users.",nmbr_users);

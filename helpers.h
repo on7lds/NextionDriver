@@ -24,6 +24,7 @@ int readConfig(void);
 void readGroups(void);
 void readUserDB(void);
 void print_users(void);
+int getDiskFree(void);
 
 int search_group(int nr, group_t a[], int m, int n);
 int search_user(int nr, user_t a[], int m, int n);

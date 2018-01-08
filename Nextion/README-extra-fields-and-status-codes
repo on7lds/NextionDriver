@@ -19,9 +19,10 @@ MMDVM
 t20 : CPU temp
 t21 : CPU freq
 t22 : system load
+t23 : %disk free
 cpuload : integer value of the system load in %
-t23 : Hotspot RX frequency (from MMDVM.ini)
-t24 : Hotspot location (from MMDVM.ini)
+t30 : Hotspot RX frequency (from MMDVM.ini)
+t31 : Hotspot location (from MMDVM.ini)
 
 status code 20 will be sent once after sending these values
 
@@ -29,7 +30,7 @@ status code 20 will be sent once after sending these values
 DMR
 t8 : TG name
 
-t13 : user data field 1
+t13: user data field 1
 t14: user data field 2
 t15: user data field 3
 t16: user data field 4
