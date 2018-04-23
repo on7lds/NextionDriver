@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
@@ -117,15 +118,37 @@ void getNetworkInterface(char* info) {
 	}
 }
 
+
+int getInternetStatus(int i){
+    char *hostname;
+    struct hostent *hostinfo;
+
+    hostname = "brandmeister.network";
+    if (i%4 == 1) hostname = "news.brandmeister.network";
+    if (i%4 == 2) hostname = "ask.brandmeister.network";
+    if (i%4 == 3) hostname = "wiki.brandmeister.network";
+
+    hostinfo = gethostbyname (hostname);
+
+    if (hostinfo == NULL) return 0; else return 1;
+}
+
+
+
 int readConfig(void) {
     #define BUFFER_SIZE 200
-    int ok=0;
+    int i,ok=0;
+
+    for (i=0; i<7; i++) modeIsEnabled[i]=0;
 
     FILE* fp = fopen(configFile, "rt");
     if (fp == NULL) {
         fprintf(stderr, "Couldn't open the MMDVM.ini file - %s\n", configFile);
         return 0;
     }
+
+    changepages=0;
+
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
     // since this is for Nextion displays, we assume Nextion is enabeled,
@@ -137,6 +160,18 @@ int readConfig(void) {
             if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
             if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
             if (strncmp(buffer, "[Log]", 5U) == 0) ok=3;
+            if (strncmp(buffer, "[D-Star]", 8U) == 0) ok=4;
+            if (strncmp(buffer, "[DMR]", 5U) == 0) ok=5;
+            if (strncmp(buffer, "[System Fusion]", 15U) == 0) ok=6;
+            if (strncmp(buffer, "[P25]", 5U) == 0) ok=7;
+            if (strncmp(buffer, "[NXDN]", 6U) == 0) ok=9;
+            if (strncmp(buffer, "[D-Star Network]", 16U) == 0) ok=10;
+            if (strncmp(buffer, "[DMR Network]", 13U) == 0) ok=11;
+            if (strncmp(buffer, "[System Fusion Network]", 23U) == 0) ok=12;
+            if (strncmp(buffer, "[P25 Network]", 13U) == 0) ok=13;
+            if (strncmp(buffer, "[NXDN Network]", 14U) == 0) ok=15;
+            if (strncmp(buffer, "[NextionDriver]", 15U) == 0) ok=20;
+
         }
         char* key   = strtok(buffer, " \t=\r\n");
         if (key == NULL)
@@ -148,7 +183,9 @@ int readConfig(void) {
 
         if (ok==1) {
             if (strcmp(key, "RXFrequency") == 0)
-                frequency = (unsigned int)atoi(value);
+                RXfrequency = (unsigned int)atoi(value);
+            if (strcmp(key, "TXFrequency") == 0)
+                TXfrequency = (unsigned int)atoi(value);
             if (strcmp(key, "Location") == 0)
                 strcpy(location,value);
         }
@@ -162,6 +199,17 @@ int readConfig(void) {
                 loglevel = (unsigned int)atoi(value);
         }
 */
+        if ((ok>=4)&&(ok<=15)) {
+            if (strcmp(key, "Enable") == 0) {
+                modeIsEnabled[ok-3] = (unsigned int)atoi(value);
+            }
+        }
+
+        if (ok==20) {
+            if (strcmp(key, "ChangePagesMode") == 0)
+                changepages = (unsigned int)atoi(value);
+        }
+
     }
     fclose(fp);
 
@@ -217,10 +265,10 @@ int search_group(int nr, group_t a[], int m, int n)
 }
 
 
-int search_user(int nr, user_t a[], int m, int n)
+int search_userID(int nr, user_t a[], int m, int n)
 {
     writelog(LOG_DEBUG,"--- User search for %d (%d [%d] - %d [%d] )",nr,m,a[m].nr,n,a[n].nr);
-    //usleep(200000);
+//    usleep(200000);
     if (nr==0) return -1;
     if (m>n) return -1;
 
@@ -231,9 +279,33 @@ int search_user(int nr, user_t a[], int m, int n)
     int middle=(m+n)/2;
     if(a[middle].nr==nr)  return middle;
     else
-    if(nr > a[middle].nr) return search_user(nr, a, middle, n);
+    if(nr > a[middle].nr) return search_userID(nr, a, middle, n);
     else
-    if(nr < a[middle].nr) return search_user(nr, a, m, middle);
+    if(nr < a[middle].nr) return search_userID(nr, a, m, middle);
+
+    return -1;
+}
+
+
+int search_userCALL(char* call, user_t a[], int m, int n)
+{
+    writelog(LOG_DEBUG,"--- User search for %s (%d [%s] - %d [%s] )",call,m,a[m].data1,n,a[n].data1);
+//    usleep(200000);
+    if (strlen(call)==0) return -1;
+    if (m>n) return -1;
+
+    if((n-m)<2) {
+        if(strcmp(a[n].data1,call)==0) { return n; } else  return -1;
+    }
+
+
+
+    int middle=(m+n)/2;
+    if(strcmp(a[middle].data1,call)==0)  return middle;
+    else
+    if(strcmp(a[middle].data1,call)<0) return search_userCALL(call, a, middle, n);
+    else
+    if(strcmp(a[middle].data1,call)>0) return search_userCALL(call, a, m, middle);
 
     return -1;
 }
@@ -387,4 +459,47 @@ void readUserDB(void){
     }
     fclose(fp);
     writelog(LOG_INFO,"Read %d users.",nmbr_users);
+}
+
+
+pid_t proc_find(const char* name)
+{
+    DIR* dir;
+    struct dirent* ent;
+    char buf[512];
+
+    long  pid;
+    char pname[100] = {0,};
+    char state;
+    FILE *fp=NULL; 
+
+    if (!(dir = opendir("/proc"))) {
+//        perror("can't open /proc");
+        return -1;
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+        long lpid = atol(ent->d_name);
+        if(lpid < 0)
+            continue;
+        snprintf(buf, sizeof(buf), "/proc/%ld/stat", lpid);
+        fp = fopen(buf, "r");
+
+        if (fp) {
+            if ( (fscanf(fp, "%ld (%[^)]) %c", &pid, pname, &state)) != 3 ){
+                printf("fscanf failed \n");
+                fclose(fp);
+                closedir(dir);
+                return -1; 
+            }
+            if (!strcmp(pname, name)) {
+                fclose(fp);
+                closedir(dir);
+                return (pid_t)lpid;
+            }
+            fclose(fp);
+        }
+    }
+closedir(dir);
+return -1;
 }

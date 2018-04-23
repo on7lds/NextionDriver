@@ -62,11 +62,11 @@ void writelog(int level, char *fmt, ...)
 
     if ( (become_daemon==TRUE) && (verbose>(level-4)) ) {
         str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
-		if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
+            if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
     } else {
-		printf("%s\n",str);
-	}
-	if (verbose>0) {
+        printf("%s\n",str);
+        }
+        if (verbose>0) {
         printf("%s\n",str);
     }
 }
@@ -86,13 +86,13 @@ void handleButton(int received) {
     char code, text[150];
     if (received>1) {
         if (!become_daemon) {
-			sprintf(text,"RX: %d (",received);
-			int i; 
-			for (i=0; i<received; i++) {
-				sprintf(&text[strlen(text)], "%02X ",RXbuffer[i]);
-			}
-			sprintf(&text[strlen(text)], ")");
-			writelog(LOG_NOTICE,text);
+            sprintf(text,"RX: %d (",received);
+            int i; 
+            for (i=0; i<received; i++) {
+                sprintf(&text[strlen(text)], "%02X ",RXbuffer[i]);
+            }
+            sprintf(&text[strlen(text)], ")");
+            writelog(LOG_NOTICE,text);
         }
         if (RXbuffer[0]==42) {
 //            if (!become_daemon) { printf("Received command %d\n",RXbuffer[1]); fflush(NULL); }

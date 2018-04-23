@@ -64,15 +64,18 @@ typedef struct userdata
 
 int gelezen;
 int check;
-int page;
+int page,changepages;
 char ipaddr[100];
-unsigned int frequency;
+unsigned int RXfrequency,TXfrequency;
 group_t groups[MAXGROUPS];
 user_t users[MAXUSERS];
 int nmbr_groups, nmbr_users;
 
 int fd1,fd2;
 int become_daemon;
+
+int modeIsEnabled[14];
+int netIsActive[7];
 
 char TXbuffer[1024],RXbuffer[1024];
 

@@ -23,6 +23,7 @@ t23 : %disk free
 cpuload : integer value of the system load in %
 t30 : Hotspot RX frequency (from MMDVM.ini)
 t31 : Hotspot location (from MMDVM.ini)
+t32 : Hotspot TX frequency (from MMDVM.ini)
 
 status code 20 will be sent once after sending these values
 
