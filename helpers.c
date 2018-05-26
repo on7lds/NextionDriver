@@ -116,6 +116,7 @@ void getNetworkInterface(char* info) {
 			break;
 		}
 	}
+
 }
 
 
@@ -137,13 +138,16 @@ int getInternetStatus(int i){
 
 int readConfig(void) {
     #define BUFFER_SIZE 200
-    int i,ok=0;
+    int i,found,ok;
+
+    ok=0;
+    found=0;
 
     for (i=0; i<7; i++) modeIsEnabled[i]=0;
 
     FILE* fp = fopen(configFile, "rt");
     if (fp == NULL) {
-        fprintf(stderr, "Couldn't open the MMDVM.ini file - %s\n", configFile);
+        fprintf(stderr, "Couldn't open the MMDVM config file - %s\n", configFile);
         return 0;
     }
 
@@ -153,26 +157,27 @@ int readConfig(void) {
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
     // since this is for Nextion displays, we assume Nextion is enabeled,
     //  so we do not check this and only search for the screenLayout variable
-    if (buffer[0U] == '#')
+    if (buffer[0U] == '#') {
         continue;
-        if (buffer[0U] == '[') {
-            ok=0;
-            if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
-            if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
-            if (strncmp(buffer, "[Log]", 5U) == 0) ok=3;
-            if (strncmp(buffer, "[D-Star]", 8U) == 0) ok=4;
-            if (strncmp(buffer, "[DMR]", 5U) == 0) ok=5;
-            if (strncmp(buffer, "[System Fusion]", 15U) == 0) ok=6;
-            if (strncmp(buffer, "[P25]", 5U) == 0) ok=7;
-            if (strncmp(buffer, "[NXDN]", 6U) == 0) ok=9;
-            if (strncmp(buffer, "[D-Star Network]", 16U) == 0) ok=10;
-            if (strncmp(buffer, "[DMR Network]", 13U) == 0) ok=11;
-            if (strncmp(buffer, "[System Fusion Network]", 23U) == 0) ok=12;
-            if (strncmp(buffer, "[P25 Network]", 13U) == 0) ok=13;
-            if (strncmp(buffer, "[NXDN Network]", 14U) == 0) ok=15;
-            if (strncmp(buffer, "[NextionDriver]", 15U) == 0) ok=20;
+    }
+    if (buffer[0U] == '[') {
+        ok=0;
+        if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
+        if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
+        if (strncmp(buffer, "[Log]", 5U) == 0) ok=3;
+        if (strncmp(buffer, "[D-Star]", 8U) == 0) ok=4;
+        if (strncmp(buffer, "[DMR]", 5U) == 0) ok=5;
+        if (strncmp(buffer, "[System Fusion]", 15U) == 0) ok=6;
+        if (strncmp(buffer, "[P25]", 5U) == 0) ok=7;
+        if (strncmp(buffer, "[NXDN]", 6U) == 0) ok=9;
+        if (strncmp(buffer, "[D-Star Network]", 16U) == 0) ok=10;
+        if (strncmp(buffer, "[DMR Network]", 13U) == 0) ok=11;
+        if (strncmp(buffer, "[System Fusion Network]", 23U) == 0) ok=12;
+        if (strncmp(buffer, "[P25 Network]", 13U) == 0) ok=13;
+        if (strncmp(buffer, "[NXDN Network]", 14U) == 0) ok=15;
+        if (strncmp(buffer, "[NextionDriver]", 15U) == 0) ok=20;
+    }
 
-        }
         char* key   = strtok(buffer, " \t=\r\n");
         if (key == NULL)
             continue;
@@ -182,16 +187,28 @@ int readConfig(void) {
             continue;
 
         if (ok==1) {
-            if (strcmp(key, "RXFrequency") == 0)
+            if (strcmp(key, "RXFrequency") == 0) {
                 RXfrequency = (unsigned int)atoi(value);
-            if (strcmp(key, "TXFrequency") == 0)
+                writelog(LOG_DEBUG,"Found RX Frequency %d",RXfrequency);
+                found++;
+            }
+            if (strcmp(key, "TXFrequency") == 0) {
                 TXfrequency = (unsigned int)atoi(value);
-            if (strcmp(key, "Location") == 0)
+                writelog(LOG_DEBUG,"Found TX Frequency %d",TXfrequency);
+                found++;
+            }
+            if (strcmp(key, "Location") == 0) {
                 strcpy(location,value);
+                writelog(LOG_DEBUG,"Found Location %s",location);
+                found++;
+            }
+
         }
         if (ok==2) {
-            if (strcmp(key, "ScreenLayout") == 0)
+            if (strcmp(key, "ScreenLayout") == 0) {
                 screenLayout = (unsigned int)atoi(value);
+                found++;
+            }
         }
 /*
         if (ok==3) {
@@ -202,16 +219,24 @@ int readConfig(void) {
         if ((ok>=4)&&(ok<=15)) {
             if (strcmp(key, "Enable") == 0) {
                 modeIsEnabled[ok-3] = (unsigned int)atoi(value);
+                found++;
             }
         }
 
         if (ok==20) {
-            if (strcmp(key, "ChangePagesMode") == 0)
+            if (strcmp(key, "ChangePagesMode") == 0) {
                 changepages = (unsigned int)atoi(value);
+                found++;
+            }
         }
 
     }
     fclose(fp);
+
+    if (found == 0) {
+        writelog(LOG_ERR,"Found no data in the config file %s. Exiting.\n", configFile);
+        exit(EXIT_FAILURE);
+    }
 
     return 1;
 }

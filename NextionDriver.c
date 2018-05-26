@@ -66,9 +66,9 @@ void writelog(int level, char *fmt, ...)
     } else {
         printf("%s\n",str);
         }
-        if (verbose>0) {
-        printf("%s\n",str);
-    }
+//    if (verbose>0) {
+//        printf("%s\n",str);
+//    }
 }
 
 
@@ -76,7 +76,7 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        if (!become_daemon) writelog(LOG_NOTICE,"TX: %s",cmd);
+        writelog(LOG_NOTICE,"TX: %s",cmd);
     }
     if (!become_daemon)fflush(NULL);
 }
@@ -85,7 +85,7 @@ void sendCommand(char *cmd){
 void handleButton(int received) {
     char code, text[150];
     if (received>1) {
-        if (!become_daemon) {
+        {
             sprintf(text,"RX: %d (",received);
             int i; 
             for (i=0; i<received; i++) {
@@ -142,6 +142,7 @@ void checkSerial(void) {
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
     if (r>0) {
+//        writelog(LOG_NOTICE,"Receive %d bytes",r);
         RXtail+=r;
         RXbuffertemp[RXtail]=0;
 
@@ -161,6 +162,7 @@ void checkSerial(void) {
 
 
 void talkToNextion(void) {
+    if (strlen(TXbuffer)>0) writelog(LOG_NOTICE,"RX: %s",TXbuffer);
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
@@ -183,37 +185,46 @@ void showRXbuffer(int buflen) {
 }
 
 
-int open_input_source(char* devicename, long BAUD)
+int open_nextion_serial_port(char* devicename, long BAUD)
 {
+    int fd;
     struct termios newtio;
-    long DATABITS;
-    long STOPBITS;
-    long PARITYON;
-    long PARITY;
-    int  fd;
 
-    DATABITS = CS8;
-    STOPBITS = 0;	// 0 = 1 stopbit
-    PARITYON = 0;	// 0 = geen pariteit
-    PARITY   = 0;
 
-    fd = open(devicename, O_RDWR | O_NOCTTY | O_NONBLOCK);
-    if (fd < 0)
-    {
+    fd = open(devicename,O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+    if (fd < 0) {
         perror(devicename);
         writelog(LOG_ERR,"Serial port %s not found. Exiting.",devicename);
         exit(1);
     }
-    newtio.c_cflag = BAUD | CRTSCTS | DATABITS | STOPBITS | PARITYON | PARITY | CLOCAL | CREAD;
+
+    tcgetattr(fd, &newtio);
+
+    cfsetispeed(&newtio,BAUD);
+    cfsetospeed(&newtio,BAUD);
+
+    newtio.c_cflag &= ~PARENB;   // geen pariteit
+    newtio.c_cflag &= ~CSTOPB;   // 1 stopbit
+    newtio.c_cflag &= ~CSIZE;    // wis databitsize
+    newtio.c_cflag |=  CS8;      // 8 databits
+
+    newtio.c_cflag &= ~CRTSCTS;  // geen HW flow Control
+    newtio.c_cflag |= CREAD | CLOCAL;
+
     newtio.c_iflag = 0;
     newtio.c_oflag = 0;
     newtio.c_lflag = 0;
 
-    cfmakeraw(&newtio);
 
     tcflush(fd, TCIOFLUSH);
-    tcsetattr(fd,TCSANOW,&newtio);
+    if((tcsetattr(fd,TCSANOW,&newtio)) != 0) {
+        writelog(LOG_ERR,"Error in retting serial port attributes");
+        exit(1);
+    }
+
 //  printf("port %s (fd %i)\n",devicename,fd);
+
     return fd;
 }
 
@@ -314,7 +325,7 @@ int main(int argc, char *argv[])
                 break;
             case 'V':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
-                printf("Copyright (C) 2017 ON7LDS. All rights reserved.\n\n");
+                printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n\n");
                 return 0;
                 break;
             case 'v':
@@ -341,7 +352,7 @@ int main(int argc, char *argv[])
                 printf("    \t (default = %s)\n",NEXTIONDRIVERLINK);
                 printf("  -m\tspecify the virtual serial port link that will be created to connect MMDVMHost to\n");
                 printf("    \t (default = %s)\n",NEXTIONPORT);
-                printf("  -f\tspecify the directory with data files (groups, users)");
+                printf("  -f\tspecify the directory with data files (groups, users)\n");
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
                 printf("  -v\tverbose (when running in daemon mode, dumps logging to syslog)\n");
                 printf("  -V\tdisplay version and exit\n");
@@ -365,7 +376,7 @@ int main(int argc, char *argv[])
     } else printf("Starting in console mode...\n");
 
     writelog(LOG_ERR,"NextionDriver version %s", NextionDriver_VERSION);
-    writelog(LOG_ERR,"Copyright (C) 2017 ON7LDS. All rights reserved.");
+    writelog(LOG_ERR,"Copyright (C) 2017,2018 ON7LDS. All rights reserved.");
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
@@ -387,10 +398,11 @@ int main(int argc, char *argv[])
 
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
     if (screenLayout==4) {
-        fd2=open_input_source(nextionPort,BAUDRATE4);
+        fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
     } else {
-        fd2=open_input_source(nextionPort,BAUDRATE3);
+        fd2=open_nextion_serial_port(nextionPort,BAUDRATE3);
     }
+
     ok=unlink(NextionDriverLink);
 //    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",NextionDriverLink,ok); exit(EXIT_FAILURE); }
     ok=symlink(mmdvmPort, NextionDriverLink);
