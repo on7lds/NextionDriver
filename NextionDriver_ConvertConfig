@@ -1,0 +1,83 @@
+#!/bin/bash
+#########################################################
+#                                                       #
+#           MMDVMHost configuration patcher             #
+#                                                       #
+#                   (c)2018 by ON7LDS                   #
+#                                                       #
+#                                                       #
+#  This program changes the MMDVMHost configuration     #
+#   file te suit the needs of NextionDriver             #
+#                                                       #
+#########################################################
+
+#Where do we find the data files (groups and DMR is's)
+DATAFILES="/usr/local/etc/"
+
+#########################################################
+
+if [ "$1" == "" ]; then
+    echo "You have to specify the config file !"
+    exit 1
+fi
+
+MMDVMConfig=$1
+
+if [[ -f "$MMDVMConfig" && -w "$MMDVMConfig" ]]; then
+    echo "Processing ..."
+else
+    echo "The file is not a regular file or writable !"
+    exit 2
+fi
+
+if [[ -f "$MMDVMConfig.old" ]]; then
+    echo "There already is a backup file $MMDVMConfig.old"
+    echo " Please remove it."
+    exit 3
+fi
+
+while IFS='' read -r line || [[ -n "$line" ]]; do
+    if [ "$line" == "[NextionDriver]" ]; then
+        echo "There already is a [NextionDriver] section."
+        echo " I'm going to leave the file as is."
+        echo " You'll have to change it by hand if necessary."
+        exit 4
+    fi
+done < "$MMDVMConfig"
+
+# Ok, alles lijkt goed.
+mv "$MMDVMConfig" "$MMDVMConfig.old"
+
+FOUND="";
+SERIALPORT="";
+while IFS='' read -r line || [[ -n "$line" ]]; do
+    #Port van Nextion gevonden ?
+    # bewaren welke dat is !
+    if [[ "$FOUND" == "1" && "${line:0:5}" == "Port=" ]]; then
+        SERIALPORT="${line:6}"
+        echo "  Serial port for Nextion was $SERIALPORT"
+        echo "  changing to /dev/ttyNextionDriver"
+        line="Port=/dev/ttyNextionDriver"
+    fi
+    #eerste sectie na [Nextion] gevonden ?
+    # hier zetten we onze gegevens tussen
+    if [[ "$FOUND" == "1" && "${line:0:1}" == "[" ]]; then
+        echo "  Inserting [NextionDriver] section"
+        SECTION="[NextionDriver]\nPort=$SERIALPORT\nLogLevel=2\nDataFilesPath=$DATAFILES\nGroupsFile=groups.txt\nDMRidFile=stripped.csv\n\n"
+        echo -e "$SECTION" >> "$MMDVMConfig"
+        echo -e "\nInserted section :"
+        echo "------------------------------"
+        echo -e "$SECTION"
+        echo "------------------------------"
+        echo ""
+        FOUND=""
+        if [ "$SERIALPORT" == "" ]; then
+            echo -e "WARNING : no serial port for Nextion found. Check your $MMDVMConfig\n"
+        fi
+    fi
+    if [ "$line" == "[Nextion]" ]; then FOUND="1"; fi
+    echo "$line" >> "$MMDVMConfig"
+
+done < "$MMDVMConfig.old"
+
+

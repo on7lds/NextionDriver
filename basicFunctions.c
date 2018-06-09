@@ -251,7 +251,7 @@ void basicFunctions() {
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t14.txt=\"Not found in\"");
             sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t15.txt=\"%s\"",USERSFILE);
+            sprintf(TXbuffer,"t15.txt=\"%s\"",usersFile);
             sendCommand(TXbuffer);
         }
         sprintf(text, "MMDVM.status.val=78");

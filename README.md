@@ -10,13 +10,17 @@ changes, adds or removes these commands.
 The program will have to read MMDVM.ini to know the Layout, so it
 can set the baudrate accordingly.
 
+The program can take some commandline parameters, but it also is 
+possible to set the configuration parameters in the MMDVM configuration
+file by adding an extra section [NextionDriver].
+
 The NextionDriver program will change the commands as needed and adds 
 extra info (i.e. temperature, TG's info, ...) and sends this to 
 the Nextion display.
 
 This program also checks the network interface regularly, and it will
-show the most recent IP address, so you can check is the IP address
-changed.  
+show the most recent IP address, so you can check if the IP address
+changed.
 
 When the files 'groups.txt' and 'stripped.csv' are present, user and
 talkgroup names will be looked up and sent to the display.  
@@ -50,26 +54,37 @@ Or you can start this program in _normal mode_, then it will go to the
 background and do its work quietly (start and stop of the program
 will be logged in syslog)  
 
-The program takes at least 3 parameters. For example :  
+The moszt practical way to start is by specifying only one parameter:
+ the place of the MMDVMHost configuration file. 
+This way, all configuration can be done in the ini file.
 
-./NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver -c /etc/MMDVM.ini
+./NextionDriver -c /etc/MMDVM.ini
 
-- will start NextionDriver from the current directory
-- the program will use the serial port /dev/ttyAMA0 for communication
-  with the display
-- the program will create a /dev/ttyNextionDriver link as a virtual serial
-  port where it will listen
-- the program will read /etc/MMDVM.ini to get some extra information
+will start NextionDriver from the current directory and read all parameters from
+the MMDVMHost ini file.
+
+
+
+In your MMDVMHost configuration file (mostly MMDVM.ini), make a section as below:
+
+[NextionDriver]
+Port=/dev/ttyAMA0
+LogLevel=2
+DataFilesPath=/opt/NextionDriver/
+GroupsFile=groups.txt
+DMRidFile=stripped.csv
+
 
 
 **IMPORTANT**
-In your MMDVM.ini you go to the Nextion section and specify:
+In the MMDVM.ini [Nextion] section you have to specify the NextionDriver's
+virtual port as the port to connect to :
 ```
 [Nextion]
 Port=/dev/ttyNextionDriver
 ...
 ```
-to tell MMDVMHost to talk to our program !
+to tell MMDVMHost to talk to our program an not directly to the display !
 
 
 How to autostart this program ?
@@ -117,7 +132,7 @@ Before= mmdvmhost.service
 User=root
 WorkingDirectory=/opt/MMDVMHost
 Type=forking
-ExecStart=/opt/NextionDriver/NextionDriver -n /dev/ttyAMA0 -m /dev/ttyNextionDriver  -c /opt/MMDVM.ini
+ExecStart=/opt/NextionDriver/NextionDriver -c /opt/MMDVM.ini
 ExecStop=/usr/bin/killall NextionDriver
 
 [Install]

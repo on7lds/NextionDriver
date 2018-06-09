@@ -92,10 +92,10 @@ void getNetworkInterface(char* info) {
 
 			if (family == AF_INET) {
 				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_NOTICE," IPv4: %s", interfacelist[ifnr]);
+				writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
 			} else {
 				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_NOTICE," IPv6: %s", interfacelist[ifnr]);
+				writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
 			}
 
 			ifnr++;
@@ -104,7 +104,7 @@ void getNetworkInterface(char* info) {
 
 	freeifaddrs(ifaddr);
 
-	writelog(LOG_NOTICE," Default interface is : %s" , dflt);
+	writelog(LOG_INFO," Default interface is : %s" , dflt);
 
 	for (n = 0U; n < ifnr; n++) {
 		char* p = strchr(interfacelist[n], '%');
@@ -135,6 +135,15 @@ int getInternetStatus(int i){
 }
 
 
+void remove_all_chars(char* str, char c) {
+    char *pr = str, *pw = str;
+    while (*pr) {
+        *pw = *pr++;
+        pw += (*pw != c);
+    }
+    *pw = '\0';
+}
+
 
 int readConfig(void) {
     #define BUFFER_SIZE 200
@@ -147,7 +156,7 @@ int readConfig(void) {
 
     FILE* fp = fopen(configFile, "rt");
     if (fp == NULL) {
-        fprintf(stderr, "Couldn't open the MMDVM config file - %s\n", configFile);
+        writelog(LOG_ERR, "Couldn't open the MMDVM config file - %s\n", configFile);
         return 0;
     }
 
@@ -189,22 +198,27 @@ int readConfig(void) {
         if (ok==1) {
             if (strcmp(key, "RXFrequency") == 0) {
                 RXfrequency = (unsigned int)atoi(value);
-                writelog(LOG_DEBUG,"Found RX Frequency %d",RXfrequency);
+                writelog(LOG_NOTICE,"Found RX Frequency %d",RXfrequency);
                 found++;
             }
             if (strcmp(key, "TXFrequency") == 0) {
                 TXfrequency = (unsigned int)atoi(value);
-                writelog(LOG_DEBUG,"Found TX Frequency %d",TXfrequency);
+                writelog(LOG_NOTICE,"Found TX Frequency %d",TXfrequency);
                 found++;
             }
             if (strcmp(key, "Location") == 0) {
+                remove_all_chars(value,'"');
                 strcpy(location,value);
-                writelog(LOG_DEBUG,"Found Location %s",location);
+                writelog(LOG_NOTICE,"Found Location [%s]",location);
                 found++;
             }
-
         }
         if (ok==2) {
+            if (strcmp(key, "Port") == 0) {
+                strcpy(nextionDriverLink,value);
+                writelog(LOG_NOTICE,"Found Virtual Port [%s]",nextionDriverLink);
+                found++;
+            }
             if (strcmp(key, "ScreenLayout") == 0) {
                 screenLayout = (unsigned int)atoi(value);
                 found++;
@@ -224,6 +238,29 @@ int readConfig(void) {
         }
 
         if (ok==20) {
+            if (strcmp(key, "Port") == 0) {
+                strcpy(nextionPort,value);
+                writelog(LOG_NOTICE,"Found Nextion Port [%s]",nextionDriverLink);
+                found++;
+            }
+            if (strcmp(key, "LogLevel") == 0) {
+                verbose=(unsigned int)atoi(value);
+                if (verbose<0) verbose=0;
+                if (verbose>4) verbose=4;
+                found++;
+            }
+            if (strcmp(key, "DataFilesPath") == 0) {
+                strcpy(datafiledir,value);
+                found++;
+            }
+            if (strcmp(key, "GroupsFile") == 0) {
+                strcpy(groupsFile,value);
+                found++;
+            }
+            if (strcmp(key, "DMRidFile") == 0) {
+                strcpy(usersFile,value);
+                found++;
+            }
             if (strcmp(key, "ChangePagesMode") == 0) {
                 changepages = (unsigned int)atoi(value);
                 found++;
@@ -247,7 +284,7 @@ int getDiskFree(void){
   char fname[250];
 
   strcpy(fname,datafiledir);
-  strcat(fname,GROUPSFILE);
+  strcat(fname,groupsFile);
 
   if( statfs( fname, &sStats ) == -1 )
     return -1;
@@ -402,15 +439,15 @@ void readGroups(void){
     char fname[250];
 
     strcpy(fname,datafiledir);
-    strcat(fname,GROUPSFILE);
+    strcat(fname,groupsFile);
 
-    writelog(LOG_NOTICE,"Reading groups from %s",fname);
+    writelog(LOG_NOTICE,"  Reading groups from %s",fname);
 
     nmbr_groups=0;
 
     FILE* fp = fopen(fname, "rt");
     if (fp == NULL) {
-        writelog(LOG_ERR, "Couldn't open the groups file %s.",fname);
+        writelog(LOG_WARNING, " ERROR: Couldn't open the groups file %s.",fname);
         return;
     }
 
@@ -434,7 +471,7 @@ void readGroups(void){
         insert_group(groups, nr, key);
     }
     fclose(fp);
-    writelog(LOG_NOTICE,"Read %d groups.",nmbr_groups);
+    writelog(LOG_NOTICE,"  Read %d groups.",nmbr_groups);
 }
 
 
@@ -443,14 +480,14 @@ void readUserDB(void){
     char fname[250];
 
     strcpy(fname,datafiledir);
-    strcat(fname,USERSFILE);
-    writelog(LOG_INFO,"Reading users from %s",fname);
+    strcat(fname,usersFile);
+    writelog(LOG_NOTICE,"  Reading users from %s",fname);
 
     nmbr_users=0;
 
     FILE* fp = fopen(fname, "rt");
     if (fp == NULL) {
-        writelog(LOG_ERR, "Couldn't open the userDB file %s.",fname);
+        writelog(LOG_WARNING, " ERROR: Couldn't open the userDB file %s.",fname);
         return;
     }
 
@@ -483,7 +520,7 @@ void readUserDB(void){
         }
     }
     fclose(fp);
-    writelog(LOG_INFO,"Read %d users.",nmbr_users);
+    writelog(LOG_NOTICE,"  Read %d users.",nmbr_users);
 }
 
 

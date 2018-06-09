@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.01"
+#define NextionDriver_VERSION "1.02"
 
 #define TRUE	1
 #define FALSE	0
@@ -40,11 +40,12 @@
 char mux[100];
 char mmdvmPort[100];
 char nextionPort[100];
-char NextionDriverLink[100];
+char nextionDriverLink[100];
 char configFile[200];
 char datafiledir[500];
+char groupsFile[100],usersFile[100];
 char location[200];
-unsigned int screenLayout;
+int verbose, screenLayout;
 
 typedef struct groupdata
 {
