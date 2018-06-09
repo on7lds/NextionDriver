@@ -42,6 +42,10 @@ MMDVMHost with buttons on the Nextion display !
 How to use this program ?
 =========================
 
+| Pi-Star users : check my website on7lds.net |
+| ------------------------------------------- |
+
+
 after compiling with  
    make
 
@@ -54,7 +58,7 @@ Or you can start this program in _normal mode_, then it will go to the
 background and do its work quietly (start and stop of the program
 will be logged in syslog)  
 
-The moszt practical way to start is by specifying only one parameter:
+The most practical way to start is by specifying only one parameter:
  the place of the MMDVMHost configuration file. 
 This way, all configuration can be done in the ini file.
 
@@ -64,16 +68,25 @@ will start NextionDriver from the current directory and read all parameters from
 the MMDVMHost ini file.
 
 
+You can get the necessary changes in your MMDVMHost configuration file by
+executing the patch script
 
+./NextionDriver_ConvertConfig <MMDVMHost configuration file>
+
+Then the script will make a backup of your current config and do the changes for you.
+
+
+In case you want to do it by hand :
 In your MMDVMHost configuration file (mostly MMDVM.ini), make a section as below:
 
+```
 [NextionDriver]
 Port=/dev/ttyAMA0
 LogLevel=2
 DataFilesPath=/opt/NextionDriver/
 GroupsFile=groups.txt
 DMRidFile=stripped.csv
-
+```
 
 
 **IMPORTANT**
