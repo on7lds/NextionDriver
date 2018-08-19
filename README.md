@@ -100,6 +100,31 @@ Port=/dev/ttyNextionDriver
 to tell MMDVMHost to talk to our program an not directly to the display !
 
 
+Modem-connected displays
+========================
+As of V1.03 the NextionDriver has support for Nextion displays which are connected to the modem ('Port=modem' in MMDVM.ini)
+For this, it is *necessary* to use the MMDVMHost code dated 20180815 or later ((GitID #f0ea25d or later) !
+
+In the MMDVM.ini file, you have at least to enable 'Transparent Data' an it's option 'SendFrameType', i.e. :
+
+[Transparent Data]
+Enable=1
+RemoteAddress=127.0.0.1
+RemotePort=40094
+LocalPort=40095
+SendFrameType=1
+
+Then you can instruct NextionDriver to use the Transparent Data
+to connect to the display. This is done by setting the 'Port' option in
+the NextionDriver section of MMDVM.ini to 'modem'
+
+[NextionDriver]
+Port=modem
+...
+
+
+
+
 How to autostart this program ?
 ===============================
 when systemd is used :

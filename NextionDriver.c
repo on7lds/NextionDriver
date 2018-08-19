@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
 
     writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
-	if (strlen(nextionPort)>0) {
+	if (strcmp(nextionPort,"modem")!=0) {
 		if (screenLayout==4) {
 			fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
 		} else {
