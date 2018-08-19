@@ -202,6 +202,7 @@ void basicFunctions() {
 
     }
 
+	/*
 	//Transparent data to myDV modem display
     if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)) {
 		if (TXbuffer[11]==' ') {	// not '2 listening' but ID or TA
@@ -215,7 +216,7 @@ void basicFunctions() {
 		strcat(text,&TXbuffer[8]);
 		sendTransparentData(MODEM_DISPLAY,text);
 	}
-
+	*/
 
     //send TG name if found
     if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
