@@ -28,9 +28,13 @@
 #include <netdb.h>
 #include <syslog.h>
 #include <sys/vfs.h>
+#include <errno.h>
 
 #include "NextionDriver.h"
+#include "helpers.h"
 
+int display_fd;
+struct addrinfo* display_addr = 0;
 
 
 void getNetworkInterface(char* info) {
@@ -151,6 +155,20 @@ int readConfig(void) {
 
     ok=0;
     found=0;
+	
+	RXfrequency=0;
+	TXfrequency=0;
+	location[0]=0;
+	for(int i=0; i<14; i++) modeIsEnabled[i]=0;
+	remotePort[0]=0;
+	localPort[0]=0;
+	transparentIsEnabled=0;
+	sendFrameType=0;
+	datafiledir[0]=0;
+	groupsFile[0]=0;
+	usersFile[0]=0;
+	changepages=0;
+	
 
     for (i=0; i<7; i++) modeIsEnabled[i]=0;
 
@@ -164,28 +182,31 @@ int readConfig(void) {
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
-    // since this is for Nextion displays, we assume Nextion is enabeled,
-    //  so we do not check this and only search for the screenLayout variable
-    if (buffer[0U] == '#') {
-        continue;
-    }
-    if (buffer[0U] == '[') {
-        ok=0;
-        if (strncmp(buffer, "[Info]", 6U) == 0) ok=1;
-        if (strncmp(buffer, "[Nextion]", 9U) == 0) ok=2;
-        if (strncmp(buffer, "[Log]", 5U) == 0) ok=3;
-        if (strncmp(buffer, "[D-Star]", 8U) == 0) ok=4;
-        if (strncmp(buffer, "[DMR]", 5U) == 0) ok=5;
-        if (strncmp(buffer, "[System Fusion]", 15U) == 0) ok=6;
-        if (strncmp(buffer, "[P25]", 5U) == 0) ok=7;
-        if (strncmp(buffer, "[NXDN]", 6U) == 0) ok=9;
-        if (strncmp(buffer, "[D-Star Network]", 16U) == 0) ok=10;
-        if (strncmp(buffer, "[DMR Network]", 13U) == 0) ok=11;
-        if (strncmp(buffer, "[System Fusion Network]", 23U) == 0) ok=12;
-        if (strncmp(buffer, "[P25 Network]", 13U) == 0) ok=13;
-        if (strncmp(buffer, "[NXDN Network]", 14U) == 0) ok=15;
-        if (strncmp(buffer, "[NextionDriver]", 15U) == 0) ok=20;
-    }
+		// since this is for Nextion displays, we assume Nextion is enabled,
+		//  so we do not check this and only search for the screenLayout variable
+		if (buffer[0] == '#') {
+			continue;
+		}
+		if (buffer[0] == '[') {
+			ok=0;
+			if (strncmp(buffer, "[D-Star]", 8) == 0) 		ok=C_DSTAR;
+			if (strncmp(buffer, "[DMR]", 5) == 0) 			ok=C_DMR;
+			if (strncmp(buffer, "[System Fusion]", 15) == 0) 	ok=C_YSF;
+			if (strncmp(buffer, "[P25]", 5) == 0) 			ok=C_P25;
+			if (strncmp(buffer, "[NXDN]", 6) == 0) 		ok=C_NXDN;
+			if (strncmp(buffer, "[POCSAG]", 6) == 0) 		ok=C_POCSAG;
+			if (strncmp(buffer, "[D-Star Network]", 16) == 0) 	ok=C_DSTARNET;
+			if (strncmp(buffer, "[DMR Network]", 13) == 0) 	ok=C_DMRNET;
+			if (strncmp(buffer, "[System Fusion Network]", 23) == 0) ok=C_YSFNET;
+			if (strncmp(buffer, "[P25 Network]", 13) == 0) 	ok=C_P25NET;
+			if (strncmp(buffer, "[NXDN Network]", 14) == 0) 	ok=C_NXDNNET;
+
+			if (strncmp(buffer, "[Info]", 6) == 0) 		ok=C_INFO;
+			if (strncmp(buffer, "[Nextion]", 9) == 0) 		ok=C_NEXTION;
+			if (strncmp(buffer, "[Log]", 5) == 0) 			ok=C_LOG;
+			if (strncmp(buffer, "[Transparent Data]", 18) == 0) 	ok=C_TRANSPARENT;
+			if (strncmp(buffer, "[NextionDriver]", 15) == 0) 	ok=C_NEXTIONDRIVER;
+		}
 
         char* key   = strtok(buffer, " \t=\r\n");
         if (key == NULL)
@@ -195,7 +216,15 @@ int readConfig(void) {
         if (value == NULL)
             continue;
 
-        if (ok==1) {
+        //1-20 = modes enebled/disabled
+        if (ok<21) {
+            if (strcmp(key, "Enable") == 0) {
+                modeIsEnabled[ok] = (unsigned int)atoi(value);
+                found++;
+            }
+        }
+
+        if (ok==C_INFO) {
             if (strcmp(key, "RXFrequency") == 0) {
                 RXfrequency = (unsigned int)atoi(value);
                 writelog(LOG_NOTICE,"Found RX Frequency %d",RXfrequency);
@@ -213,7 +242,7 @@ int readConfig(void) {
                 found++;
             }
         }
-        if (ok==2) {
+        if (ok==C_NEXTION) {
             if (strcmp(key, "Port") == 0) {
                 strcpy(nextionDriverLink,value);
                 writelog(LOG_NOTICE,"Found Virtual Port [%s]",nextionDriverLink);
@@ -225,22 +254,42 @@ int readConfig(void) {
             }
         }
 /*
-        if (ok==3) {
+        if (ok==C_LOG) {
             if (strcmp(key, "FileLevel") == 0)
                 loglevel = (unsigned int)atoi(value);
         }
 */
-        if ((ok>=4)&&(ok<=15)) {
+
+
+
+        if (ok==C_TRANSPARENT) {
             if (strcmp(key, "Enable") == 0) {
-                modeIsEnabled[ok-3] = (unsigned int)atoi(value);
+                transparentIsEnabled = (unsigned int)atoi(value);
+				writelog(LOG_NOTICE,"Use Transparent Connection: %s", (transparentIsEnabled==0) ? "NO" : "YES");
                 found++;
             }
-        }
+            if (strcmp(key, "LocalPort") == 0) {
+                strcpy(remotePort,value);	//yes! the local port from MMDVMHost is our remote port !
+				writelog(LOG_NOTICE,"  Remote port: %s", remotePort);
+                found++;
+            }
+            if (strcmp(key, "RemotePort") == 0) {
+                strcpy(localPort,value);	//yes! the remote port from MMDVMHost is our local port !
+				writelog(LOG_NOTICE,"  Local port: %s", localPort);
+                found++;
+            }
+            if (strcmp(key, "SendFrameType") == 0) {
+                sendFrameType = (unsigned int)atoi(value);
+				writelog(LOG_NOTICE,"  Send Frame Type: %s", (sendFrameType==0) ? "NO" : "YES");
+                found++;
+            }
+		}
 
-        if (ok==20) {
+
+        if (ok==C_NEXTIONDRIVER) {
             if (strcmp(key, "Port") == 0) {
                 strcpy(nextionPort,value);
-                writelog(LOG_NOTICE,"Found Nextion Port [%s]",nextionDriverLink);
+                writelog(LOG_NOTICE,"Found Nextion Port [%s]",nextionPort);
                 found++;
             }
             if (strcmp(key, "LogLevel") == 0) {
@@ -359,8 +408,6 @@ int search_userCALL(char* call, user_t a[], int m, int n)
     if((n-m)<2) {
         if(strcmp(a[n].data1,call)==0) { return n; } else  return -1;
     }
-
-
 
     int middle=(m+n)/2;
     if(strcmp(a[middle].data1,call)==0)  return middle;
@@ -565,3 +612,58 @@ pid_t proc_find(const char* name)
 closedir(dir);
 return -1;
 }
+
+
+
+int openSocket(void) {
+    const char* hostname="127.0.0.1"; /* localhost */
+    struct addrinfo hints;
+
+	if (transparentIsEnabled==0) return 0;
+
+    memset(&hints,0,sizeof(hints));
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = 0;
+    hints.ai_flags    = AI_ADDRCONFIG;
+	
+    int err=getaddrinfo(hostname,remotePort,&hints,&display_addr);
+    if (err!=0) {
+        writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)\n",err);
+        writelog(LOG_ERR,"  getaddrinfo: %s\n", gai_strerror(err));
+        return 0;
+    }
+
+    display_fd=socket(display_addr->ai_family,display_addr->ai_socktype,display_addr->ai_protocol);
+    if (display_fd==-1) {
+        writelog(LOG_ERR,"Transparent Connection: %s\n",strerror(errno));
+        return 0;
+    }
+
+    writelog(LOG_NOTICE,"Transparent Connection: socket open, fd=%d\n",display_fd);
+
+    return 1;
+}
+
+
+int sendTransparentData(int display,char* msg) {
+
+	if (transparentIsEnabled==0) return 0;
+
+    char content[100];
+
+	content[0]=0x90;
+	if (display==1) content[0]=0x80;
+	
+	writelog(LOG_NOTICE," NET: %s",msg);
+	
+    strcpy(&content[1],msg);
+    strcat(content,"\xff\xff\xff");
+
+    if (sendto(display_fd,content,strlen(content),0, display_addr->ai_addr,display_addr->ai_addrlen)==-1) {
+		writelog(LOG_ERR,"Transparent Send: %s\n",strerror(errno));
+        return 0;
+    } else 
+		return 1;
+}
+

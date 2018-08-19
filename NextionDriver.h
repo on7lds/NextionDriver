@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.02"
+#define NextionDriver_VERSION "1.03"
 
 #define TRUE	1
 #define FALSE	0
@@ -33,6 +33,9 @@
 #define USERSFILE		"stripped.csv"
 #define MAXGROUPS	1500
 #define MAXUSERS	120000
+
+#define MODEM_DISPLAY 0
+#define MMDVM_DISPLAY 1
 
 #define BAUDRATE3	B9600
 #define BAUDRATE4	B115200
@@ -75,8 +78,11 @@ int nmbr_groups, nmbr_users;
 int fd1,fd2;
 int become_daemon;
 
-int modeIsEnabled[14];
-int netIsActive[7];
+int modeIsEnabled[20];
+int netIsActive[10];
+
+int transparentIsEnabled,sendFrameType;
+char remotePort[10],localPort[10];
 
 char TXbuffer[1024],RXbuffer[1024];
 

@@ -19,18 +19,25 @@
 #if !defined(helpers_H)
 #define helpers_H
 
-#define DSTAR		1
-#define DMR		2
-#define FUSION		3
-#define P25		4
-#define YSFDMR		5
-#define NXDN		6
-#define DSTAR_NET	7
-#define DMR_NET		8
-#define FUSION_NET	9
-#define P25_NET		10
-#define YSFDMR_NET	11
-#define NXDN_NET	12
+#define C_DSTAR		1
+#define C_DMR		2
+#define C_YSF		3
+#define C_YSFDMR	4
+#define C_P25		5
+#define C_NXDN		6
+#define C_POCSAG	7
+#define C_DSTARNET	11
+#define C_DMRNET	12
+#define C_YSFNET	13
+#define C_YSFDMRNET	14
+#define C_P25NET	15
+#define C_NXDNNET	16
+
+#define C_INFO		20
+#define C_NEXTION	21
+#define C_LOG		22
+#define C_TRANSPARENT	23
+#define C_NEXTIONDRIVER	24
 
 
 void getNetworkInterface(char* info);
@@ -41,6 +48,8 @@ void readGroups(void);
 void readUserDB(void);
 void print_users(void);
 int getDiskFree(void);
+int openSocket(void); 
+int sendTransparentData(int display, char* msg);
 
 int search_group(int nr, group_t a[], int m, int n);
 int search_userID(int nr, user_t a[], int m, int n);

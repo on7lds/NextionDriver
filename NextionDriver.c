@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include <stdarg.h>
+
 #include "NextionDriver.h"
 #include "basicFunctions.h"
 #include "processCommands.h"
@@ -73,7 +74,8 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        writelog(LOG_DEBUG,"TX: %s",cmd);
+        sendTransparentData(MMDVM_DISPLAY,cmd);
+        writelog(LOG_DEBUG," TX:  %s",cmd);
     }
     if (!become_daemon)fflush(NULL);
 }
@@ -159,7 +161,7 @@ void checkSerial(void) {
 
 
 void talkToNextion(void) {
-    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"RX: %s",TXbuffer);
+    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"RX:   %s",TXbuffer);
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
@@ -170,7 +172,7 @@ void talkToNextion(void) {
 
 void showRXbuffer(int buflen) {
     int z;
-    if (!become_daemon) printf("RX: ");
+    if (!become_daemon) printf("RX:   ");
     for (z=0; z<buflen;z++) {
         if ((RXbuffer[z]<' ')||(RXbuffer[z]>254)) {
             if (!become_daemon) printf("0x%02X ",RXbuffer[z]); 
@@ -277,6 +279,7 @@ static void go_daemon() {
     close(STDERR_FILENO);
 }
 
+
 static void terminate(int sig)
 {
     char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
@@ -305,6 +308,8 @@ int main(int argc, char *argv[])
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
     // terminate on these signals
+    signal(SIGINT, terminate);			// 'Ctrl-C'
+    signal(SIGQUIT, terminate);			// 'Ctrl-\'
     signal(SIGHUP, terminate);
     signal(SIGTERM, terminate);
     signal(SIGUSR1, terminate);
@@ -333,7 +338,7 @@ int main(int argc, char *argv[])
                 if (verbose<4) verbose++;
                 break;
             case 'm':
-                strncpy(nextionDriverLink,optarg,sizeof(nextionPort)-2);
+                strncpy(nextionDriverLink,optarg,sizeof(nextionDriverLink)-2);
                 ok++;
                 break;
             case 'n':
@@ -348,20 +353,17 @@ int main(int argc, char *argv[])
                 break;
             case 'h':
             case ':':
-                printf("\nUsage: %s [-n <Nextion port serial port>] [-m <MMDVMHost port>] [-d] [-h]\n\n", argv[0]);
-                printf("  -n\tspecify the serial port where the Nextion is connected\n");
-                printf("    \t (default = %s)\n",NEXTIONDRIVERLINK);
-                printf("  -m\tspecify the virtual serial port link that will be created to connect MMDVMHost to\n");
-                printf("    \t (default = %s)\n",NEXTIONPORT);
+				printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
+				printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n");
+                printf("\nUsage: %s -c <MMDVM config file> [-f] [-d] [-h]\n\n", argv[0]);
+                printf("  -c\tspecify the MMDVM config file, which has to be extended with the NetxtionDriver config\n");
                 printf("  -f\tspecify the directory with data files (groups, users)\n");
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
                 printf("  -v\tverbose (when running in daemon mode, dumps logging to syslog)\n");
                 printf("  -V\tdisplay version and exit\n");
                 printf("  -h\tthis help.\n\n");
-                printf("Example : %s -n /dev/ttyAMA0 -m /dev/ttyNextionDriver\n\n", argv[0]);
                 printf("Note: more options are possible by just specifying the configuration file.\n");
                 printf(" All settings in the configuration file take priority over the options on the commandline.\n\n\n");
-
                 exit(EXIT_SUCCESS);
                 break;
 
@@ -397,23 +399,36 @@ int main(int argc, char *argv[])
 
     writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
-    if (screenLayout==4) {
-        fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
-    } else {
-        fd2=open_nextion_serial_port(nextionPort,BAUDRATE3);
-    }
+	if (strlen(nextionPort)>0) {
+		if (screenLayout==4) {
+			fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
+		} else {
+			fd2=open_nextion_serial_port(nextionPort,BAUDRATE3);
+		}
+	} else fd2=-1;
 
     ok=unlink(nextionDriverLink);
 //    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",nextionDriverLink,ok); exit(EXIT_FAILURE); }
     ok=symlink(mmdvmPort, nextionDriverLink);
     if (ok!=0) { writelog(LOG_ERR,"Link %s could not be created (%d). Exiting.",nextionDriverLink,ok); exit(EXIT_FAILURE); }
-//    writelog(2," fd1 %d, fd2 %d", fd1, fd2);
-    writelog(2," %s (=%s) <=> %s",nextionDriverLink,mmdvmPort,nextionPort);
 
+    if (fd2>=0) {
+		writelog(2," %s (=%s) <=> %s",nextionDriverLink,mmdvmPort,nextionPort);
+	} else {
+		writelog(2," %s (=%s) <=> modem",nextionDriverLink,mmdvmPort);
+		if ((transparentIsEnabled==0)||(sendFrameType==0)) { 
+			writelog(LOG_ERR,"Unable to start. For using a display connected to the modem,"); 
+			writelog(LOG_ERR," you have to enable 'Transparent Data' and 'sendFrameType' !"); 
+			exit(EXIT_FAILURE); 
+		}
+	}
+	
     t=0; wait=0; int r=0;
     char buffer[1024];
     char* s;
     int start=0;
+
+    if (transparentIsEnabled==1) transparentIsEnabled=openSocket();
 
     RXtail=0;
     while(1)
@@ -435,7 +450,7 @@ int main(int argc, char *argv[])
 //            writelog(LOG_NOTICE,"Process %s",TXbuffer);
             talkToNextion();
         }
-        if (wait++>1000) { wait=0; TXbuffer[0]=0; talkToNextion(); }
+        if ((start==0)||(wait++>1000)) { wait=0; memset(buffer,0,1023); TXbuffer[0]=0; talkToNextion(); }
 //        usleep(1000);
     }
     close(fd1);
