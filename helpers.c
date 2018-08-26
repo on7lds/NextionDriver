@@ -179,6 +179,9 @@ int readConfig(void) {
     }
 
     changepages=0;
+	removeDim=0;
+	
+
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
@@ -312,6 +315,10 @@ int readConfig(void) {
             }
             if (strcmp(key, "ChangePagesMode") == 0) {
                 changepages = (unsigned int)atoi(value);
+                found++;
+            }
+            if (strcmp(key, "RemoveDim") == 0) {
+                removeDim = (unsigned int)atoi(value);
                 found++;
             }
         }

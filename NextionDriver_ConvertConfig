@@ -5,13 +5,15 @@
 #                                                       #
 #                   (c)2018 by ON7LDS                   #
 #                                                       #
+#                        V1.01                          #
 #                                                       #
 #  This program changes the MMDVMHost configuration     #
-#   file te suit the needs of NextionDriver             #
+#   file to suit the needs of NextionDriver             #
 #                                                       #
 #########################################################
 
 #Where do we find the data files (groups and DMR is's)
+#for Pi-Star : /usr/local/etc/
 DATAFILES="/usr/local/etc/"
 
 #########################################################
@@ -22,6 +24,17 @@ if [ "$1" == "" ]; then
 fi
 
 MMDVMConfig=$1
+VERSION="1.01"
+echo ""
+#echo "Starting NextionDriver_ConvertConfig $VERSION"
+echo ""
+echo "NOTE: I tried to make this script as foolproof as possible."
+echo "  There might still be situations where it does not work"
+echo "  as expected."
+echo "  If you should discover any bugs, please let me know."
+echo ""
+echo "Starting NextionDriver_ConvertConfig $VERSION"
+echo ""
 
 if [[ -f "$MMDVMConfig" && -w "$MMDVMConfig" ]]; then
     echo "Processing ..."
@@ -32,7 +45,7 @@ fi
 
 if [[ -f "$MMDVMConfig.old" ]]; then
     echo "There already is a backup file $MMDVMConfig.old"
-    echo " Please remove it."
+    echo " If you are sure to run the installer again, then Please remove it."
     exit 3
 fi
 
@@ -48,36 +61,140 @@ done < "$MMDVMConfig"
 # Ok, alles lijkt goed.
 mv "$MMDVMConfig" "$MMDVMConfig.old"
 
-FOUND="";
-SERIALPORT="";
+
+NEXTIONPORT_IS_MODEM=""
+NEXTIONPORT_IS_DRIVER=""
+TRANSPARENT=""
 while IFS='' read -r line || [[ -n "$line" ]]; do
-    #Port van Nextion gevonden ?
-    # bewaren welke dat is !
-    if [[ "$FOUND" == "1" && "${line:0:5}" == "Port=" ]]; then
-        SERIALPORT="${line:6}"
-        echo "  Serial port for Nextion was $SERIALPORT"
-        echo "  changing to /dev/ttyNextionDriver"
-        line="Port=/dev/ttyNextionDriver"
+    #sectie bepalen
+    if [[ "${line:0:1}" == "[" ]]; then
+        SECTION=${line:1:-1}
     fi
+    #Port van Nextion zoeken, 
+    #we moeten weten of het modem is of niet
+    if [[ "$SECTION" == "Nextion" && "$line" == "Port=modem" ]]; then
+        NEXTIONPORT_IS_MODEM="1"
+        echo "Info: Serial port for Nextion is modem."
+        echo "      We will have to enable Transparent Data!"
+    fi
+    if [[ "$SECTION" == "Nextion" && "$line" == "Port="*"ttyNextionDriver" ]]; then
+        NEXTIONPORT_IS_DRIVER="1"
+        echo "ERROR: The driver already seems to be installed,"
+        echo "       so I will not change the configuration."
+        echo "       If something is wrong, please correct it by hand."
+        mv "$MMDVMConfig.old" "$MMDVMConfig"
+        exit 1
+    fi
+    if [[ "$SECTION" == "Transparent Data" && "$TRANSPARENT" == "" ]]; then
+        TRANSPARENT="1"
+        echo "Info: Transparent Data section found."
+    fi
+    if [[ "$SECTION" == "Transparent Data" && "$TRANSPARENT" == "1" && "$line" == "SendFrameType="* ]]; then
+        TRANSPARENT="2"
+        echo "Info: SendFrameType option found."
+    fi
+done < "$MMDVMConfig.old"
+
+
+
+if [[ "$NEXTIONPORT_IS_MODEM" == "1" && "$TRANSPARENT" == "" ]]; then
+    echo "Info: No Transparent Data section."
+    echo "      Will be inserted !"
+    TRANSPARENT="3"
+fi
+
+
+echo "--->  Creating new ini file..."
+SECTION=""
+SERIALPORT=""
+FOUND_NEXTION=""
+FOUND_MODEM=""
+while IFS='' read -r line || [[ -n "$line" ]]; do
+    #sectie bepalen
+    if [[ "${line:0:1}" == "[" ]]; then
+        SECTION=${line:1:-1}
+    fi
+
+    #[Modem]
+    if [[ "$SECTION" == "Modem" ]]; then
+        FOUND_MODEM="1"
+    fi
+
+    #[Transparent data]
+    if [[ "$NEXTIONPORT_IS_MODEM" == "1" && "$SECTION" == "Transparent Data" ]]; then
+        if [[ "${line:0:7}" == "Enable=" ]]; then
+            TRANSPARENT_ENABLE=${line:7:1}
+            echo "Info: Transparent data enable: $TRANSPARENT_ENABLE"
+            if [[ "$TRANSPARENT_ENABLE" != "1" ]]; then
+                echo "        changing to 1"
+                line="Enable=1"
+            else
+                echo "        OK !"
+            fi
+            if [[ "$TRANSPARENT" == "1" ]]; then
+                TRANSPARENT="x"
+                echo "Info: Inserting SendFrameType=1"
+                echo "$line" >> "$MMDVMConfig"
+                line="SendFrameType=1"
+            fi
+        fi
+        if [[ "$TRANSPARENT" == "2" && "${line:0:14}" == "SendFrameType=" ]]; then
+            SENDFRAMETYPE=${line:14:1}
+            echo "Info: SendFrameType: $SENDFRAMETYPE"
+            if [[ "$SENDFRAMETYPE" != "1" ]]; then
+                echo "        changing to 1"
+                line="SendFrameType=1"
+            else
+                echo "        OK !"
+            fi
+        fi
+    fi
+
+    #[Nextion]
+    if [[ "$SECTION" == "Nextion" ]]; then
+        FOUND_NEXTION="1"
+        #Port van Nextion gevonden ?
+        # bewaren welke dat is !
+        if [[ "${line:0:5}" == "Port=" ]]; then
+            SERIALPORT="${line:5}"
+            echo "Info: Serial port for Nextion was $SERIALPORT"
+            echo "        changing to /dev/ttyNextionDriver"
+            line="Port=/dev/ttyNextionDriver"
+        fi
+
+    fi
+
     #eerste sectie na [Nextion] gevonden ?
     # hier zetten we onze gegevens tussen
-    if [[ "$FOUND" == "1" && "${line:0:1}" == "[" ]]; then
-        echo "  Inserting [NextionDriver] section"
-        SECTION="[NextionDriver]\nPort=$SERIALPORT\nLogLevel=2\nDataFilesPath=$DATAFILES\nGroupsFile=groups.txt\nDMRidFile=stripped.csv\n\n"
+    if [[  "$SECTION" != "Nextion" && "$FOUND_NEXTION" == "1" && "${line:0:1}" == "[" ]]; then
+        echo "Info: Inserting [NextionDriver] section"
+        SECTION="[NextionDriver]\nPort=$SERIALPORT\nLogLevel=2\nDataFilesPath=$DATAFILES\nGroupsFile=groups.txt\nDMRidFile=stripped.csv\nremoveDim=0\n\n"
         echo -e "$SECTION" >> "$MMDVMConfig"
-        echo -e "\nInserted section :"
+        echo -e "\n\nInserted section :"
         echo "------------------------------"
         echo -e "$SECTION"
         echo "------------------------------"
         echo ""
-        FOUND=""
+        FOUND_NEXTION=""
         if [ "$SERIALPORT" == "" ]; then
             echo -e "WARNING : no serial port for Nextion found. Check your $MMDVMConfig\n"
         fi
     fi
-    if [ "$line" == "[Nextion]" ]; then FOUND="1"; fi
+
+    if [[ "$SECTION" != "Modem" && "$FOUND_MODEM" == "1" && "${line:0:1}" == "[" && "$TRANSPARENT" == "3" ]]; then
+        echo "Info: Inserting [Transparent Data] section"
+        SECTION="[Transparent Data]\nEnable=1\nRemoteAddress=127.0.0.1\nRemotePort=40094\nLocalPort=40095\nSendFrameType=1\n\n"
+        echo -e "$SECTION" >> "$MMDVMConfig"
+        echo -e "\n\nInserted section :"
+        echo "------------------------------"
+        echo -e "$SECTION"
+        echo "------------------------------"
+        echo ""
+        FOUND_MODEM=""
+    fi
+
+
     echo "$line" >> "$MMDVMConfig"
 
 done < "$MMDVMConfig.old"
-
 

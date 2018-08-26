@@ -34,6 +34,8 @@
 void basicFunctions() {
 
     char text[100];
+	
+	if (strlen(TXbuffer)==0) return;
 
     //---------------------------------------------------
     // the 'page' variable holds the last selected page
@@ -81,6 +83,15 @@ void basicFunctions() {
         sendCommand(text);
         sprintf(TXbuffer, "t2.txt=\"\"");
     }
+
+	//remove dim if necessary
+	if (removeDim) {
+		if (strstr(TXbuffer,"dim=")!=NULL) {
+			TXbuffer[0]=0;
+			return;
+		}		
+	}
+	
     // if date/time is sent, check IP interface from time to time:
     //   and disk free in %
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)) {
@@ -100,7 +111,14 @@ void basicFunctions() {
         } else {
             fscanf (deviceInfoFile, "%lf", &val);
             val /= 1000;
+
             sprintf(text, "t20.txt=\"%2.2f %cC\"", val, 176);
+            /*
+            If you live in one of the 5 countries (Bahamas, Belize, Cayman Islands,
+             Palau, US) where they use degrees F, you could comment the line above
+             and uncomment the following line :                                      */
+            //val=(val*1.8)+32;  sprintf(text, "t20.txt=\"%2.1f %cF\"", val, 176);
+
             fclose(deviceInfoFile);
         }
         sendCommand(text);
@@ -268,5 +286,6 @@ void basicFunctions() {
         sendCommand(text);
         sendCommand("click S0,1");
     }
-}
+	
 
+}

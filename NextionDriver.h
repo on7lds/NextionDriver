@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.03"
+#define NextionDriver_VERSION "1.04"
 
 #define TRUE	1
 #define FALSE	0
@@ -68,7 +68,7 @@ typedef struct userdata
 
 int gelezen;
 int check;
-int page,changepages;
+int page,changepages,removeDim;
 char ipaddr[100];
 unsigned int RXfrequency,TXfrequency;
 group_t groups[MAXGROUPS];

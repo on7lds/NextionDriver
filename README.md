@@ -7,24 +7,23 @@ It does this by sitting between MMDVMHost and the Nextion Display.
 This program takes the commands, sent by MMDVMHost and translates,
 changes, adds or removes these commands.
 
-The program will have to read MMDVM.ini to know the Layout, so it
-can set the baudrate accordingly.
+Since the program has to read MMDVM.ini to know the Layout (for
+setting the baudrate) and other parameters (i.e. for knowing
+the frequency and location), the parameters for the NextionDriver
+itself are also located in the MMDVM configuration file,
+in an extra section [NextionDriver].
 
-The program can take some commandline parameters, but it also is 
-possible to set the configuration parameters in the MMDVM configuration
-file by adding an extra section [NextionDriver].
-
-The NextionDriver program will change the commands as needed and adds 
-extra info (i.e. temperature, TG's info, ...) and sends this to 
-the Nextion display.
+As stated above, the NextionDriver program will change the commands
+as needed and adds extra info (i.e. temperature, TG's info, ...) 
+and sends this to the Nextion display.
 
 This program also checks the network interface regularly, and it will
 show the most recent IP address, so you can check if the IP address
 changed.
 
-When the files 'groups.txt' and 'stripped.csv' are present, user and
-talkgroup names will be looked up and sent to the display.  
-NOTE1 : both files have to be sorted in ascending ID order !  
+When the files 'groups.txt' and 'stripped.csv' are present, usernames
+and talkgroup names will be looked up and sent to the display. 
+NOTE1 : both files have to be sorted in ascending ID order ! 
 NOTE2 : for the user data lookup to work, you MUST switch off 
          the DMRID lookup of MMDVMHost (check README-examples
          in the Nextion subdirectory)
@@ -47,10 +46,13 @@ How to use this program ?
 
 
 after compiling with  
-   make
-
+```sh
+   $ make
+```
 you should have a binary  
-   NextionDriver  
+```
+   NextionDriver
+```
   
 You can start this program in _debug mode_, then all commands that are sent
 to the display, will be printed to stdout.
@@ -62,7 +64,9 @@ The most practical way to start is by specifying only one parameter:
  the place of the MMDVMHost configuration file. 
 This way, all configuration can be done in the ini file.
 
-./NextionDriver -c /etc/MMDVM.ini
+```sh
+$ ./NextionDriver -c /etc/MMDVM.ini
+```
 
 will start NextionDriver from the current directory and read all parameters from
 the MMDVMHost ini file.
@@ -71,9 +75,11 @@ the MMDVMHost ini file.
 You can get the necessary changes in your MMDVMHost configuration file by
 executing the patch script
 
-./NextionDriver_ConvertConfig <MMDVMHost configuration file>
+```sh
+$ ./NextionDriver_ConvertConfig <MMDVMHost configuration file>
+```
 
-Then the script will make a backup of your current config and do the changes for you.
+Then the script will make a backup of your current config and try to do the changes for you.
 
 
 In case you want to do it by hand :
@@ -86,6 +92,7 @@ LogLevel=2
 DataFilesPath=/opt/NextionDriver/
 GroupsFile=groups.txt
 DMRidFile=stripped.csv
+RemoveDim=0
 ```
 
 
@@ -102,26 +109,45 @@ to tell MMDVMHost to talk to our program an not directly to the display !
 
 Modem-connected displays
 ========================
-As of V1.03 the NextionDriver has support for Nextion displays which are connected to the modem ('Port=modem' in MMDVM.ini)
-For this, it is *necessary* to use the MMDVMHost code dated 20180815 or later ((GitID #f0ea25d or later) !
+As of V1.03 the NextionDriver has support for Nextion displays which are
+connected to the modem ('Port=modem' in MMDVM.ini)
+For this, it is *necessary* to use the MMDVMHost code dated 20180815 or later
+(G4KLX GitID #f0ea25d or later). 
+Note: At this moment, you can NOT tell from the MMDVMHost version string
+whether you have the right version or not.
 
-In the MMDVM.ini file, you have at least to enable 'Transparent Data' an it's option 'SendFrameType', i.e. :
+In the MMDVM.ini file, you **must** enable 'Transparent Data'
+ **and** it's option 'SendFrameType', i.e. :
 
+```
 [Transparent Data]
 Enable=1
 RemoteAddress=127.0.0.1
 RemotePort=40094
 LocalPort=40095
 SendFrameType=1
+```
 
 Then you can instruct NextionDriver to use the Transparent Data
 to connect to the display. This is done by setting the 'Port' option in
 the NextionDriver section of MMDVM.ini to 'modem'
-
+```
 [NextionDriver]
 Port=modem
 ...
+```
 
+
+NextionDriver Options
+=====================
+|Option       |                                                    |
+|-------------|----------------------------------------------------|
+|Port         | the port to which the Nextion display is connected |
+|LogLeve      | 0 (no logging) ... 4 (verbose logging)             |
+|DataFilesPath|where the users and group info files reside         |
+|GroupsFile   |name of the file with talkgroup number <-> name info|
+|DMRidFile    |name of the file with user number <-> name info     |
+|RemoveDim    |do not pass 'dim' commands to the display           |
 
 
 
