@@ -159,7 +159,9 @@ int readConfig(void) {
 	RXfrequency=0;
 	TXfrequency=0;
 	location[0]=0;
-	for(int i=0; i<14; i++) modeIsEnabled[i]=0;
+	for(i=0; i<14; i++) 
+          modeIsEnabled[i]=0;
+     
 	remotePort[0]=0;
 	localPort[0]=0;
 	transparentIsEnabled=0;
