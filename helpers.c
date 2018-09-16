@@ -29,98 +29,93 @@
 #include <syslog.h>
 #include <sys/vfs.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "NextionDriver.h"
 #include "helpers.h"
 
-int display_fd;
-struct addrinfo* display_addr = 0;
-
 
 void getNetworkInterface(char* info) {
-	const unsigned int IFLISTSIZ = 25U;
-	int n;
+    const unsigned int IFLISTSIZ = 25U;
+    int n;
 
-	FILE* fp = fopen("/proc/net/route" , "r");
-	if (fp == NULL) {
-		writelog(LOG_ERR,"Unabled to open /proc/route");
-		return;
-	}
+    FILE* fp = fopen("/proc/net/route" , "r");
+    if (fp == NULL) {
+        writelog(LOG_ERR,"Unabled to open /proc/route");
+        return;
+    }
 
-	char* dflt = NULL;
+    char* dflt = NULL;
 
-	char line[100U];
-	while (fgets(line, 100U, fp)) {
-		char* p1 = strtok(line , " \t");
-		char* p2 = strtok(NULL , " \t");
+    char line[100U];
+    while (fgets(line, 100U, fp)) {
+        char* p1 = strtok(line , " \t");
+        char* p2 = strtok(NULL , " \t");
 
-		if (p1 != NULL && p2 != NULL) {
-			if (strcmp(p2, "00000000") == 0) {
-				dflt = p1;
-				break;
-			}
-		}
-	}
+        if (p1 != NULL && p2 != NULL) {
+            if (strcmp(p2, "00000000") == 0) {
+            dflt = p1;
+            break;
+            }
+        }
+    }
 
-	fclose(fp);
+    fclose(fp);
 
-	if (dflt == NULL) {
-		writelog(LOG_ERR,"Unable to find the default route");
-		return;
-	}
+    if (dflt == NULL) {
+        writelog(LOG_ERR,"Unable to find the default route");
+        return;
+    }
 
-	char interfacelist[IFLISTSIZ][50+INET6_ADDRSTRLEN];
-	for (n = 0U; n < IFLISTSIZ; n++)
-		interfacelist[n][0] = 0;
+    char interfacelist[IFLISTSIZ][50+INET6_ADDRSTRLEN];
+    for (n = 0U; n < IFLISTSIZ; n++) {
+        interfacelist[n][0] = 0;
+    }
 
-	struct ifaddrs* ifaddr;
-	if (getifaddrs(&ifaddr) == -1) {
-		writelog(LOG_ERR,"getifaddrs failure");
-		return;
-	}
+    struct ifaddrs* ifaddr;
+    if (getifaddrs(&ifaddr) == -1) {
+        writelog(LOG_ERR,"getifaddrs failure");
+        return;
+    }
 
-	unsigned int ifnr = 0U;
-	struct ifaddrs* ifa;
-	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr == NULL)
-			continue;
+    unsigned int ifnr = 0U;
+    struct ifaddrs* ifa;
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL)
+        continue;
 
-		int family = ifa->ifa_addr->sa_family;
-		if (family == AF_INET || family == AF_INET6) {
-			char host[NI_MAXHOST];
-			int s = getnameinfo(ifa->ifa_addr, family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-			if (s != 0) {
-				writelog(LOG_ERR,"getnameinfo() failed: %s\n", gai_strerror(s));
-				continue;
-			}
+        int family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET || family == AF_INET6) {
+            char host[NI_MAXHOST];
+            int s = getnameinfo(ifa->ifa_addr, family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+            if (s != 0) {
+                writelog(LOG_ERR,"getnameinfo() failed: %s\n", gai_strerror(s));
+                continue;
+            }
+            if (family == AF_INET) {
+                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
+            } else {
+                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
+            }
+            ifnr++;
+        }
+    }
 
-			if (family == AF_INET) {
-				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
-			} else {
-				sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
-				writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
-			}
+    freeifaddrs(ifaddr);
 
-			ifnr++;
-		}
-	}
+    writelog(LOG_INFO," Default interface is : %s" , dflt);
 
-	freeifaddrs(ifaddr);
-
-	writelog(LOG_INFO," Default interface is : %s" , dflt);
-
-	for (n = 0U; n < ifnr; n++) {
-		char* p = strchr(interfacelist[n], '%');
-		if (p != NULL)
-			*p = 0;
-
-		if (strstr(interfacelist[n], dflt) != 0) {
-			strcpy((char*)info, interfacelist[n]);
-			break;
-		}
-	}
-
+    for (n = 0U; n < ifnr; n++) {
+        char* p = strchr(interfacelist[n], '%');
+        if (p != NULL)
+          *p = 0;
+        if (strstr(interfacelist[n], dflt) != 0) {
+            strcpy((char*)info, interfacelist[n]);
+            break;
+        }
+    }
 }
 
 
@@ -155,20 +150,24 @@ int readConfig(void) {
 
     ok=0;
     found=0;
-	
-	RXfrequency=0;
-	TXfrequency=0;
-	location[0]=0;
-	for(int i=0; i<14; i++) modeIsEnabled[i]=0;
-	remotePort[0]=0;
-	localPort[0]=0;
-	transparentIsEnabled=0;
-	sendFrameType=0;
-	datafiledir[0]=0;
-	groupsFile[0]=0;
-	usersFile[0]=0;
-	changepages=0;
-	
+
+
+#ifdef XTRA
+    RXfrequency=0;
+    TXfrequency=0;
+    location[0]=0;
+#endif
+
+    for(i=0; i<14; i++) modeIsEnabled[i]=0;
+    remotePort[0]=0;
+    localPort[0]=0;
+    transparentIsEnabled=0;
+    sendFrameType=0;
+    datafiledir[0]=0;
+    groupsFile[0]=0;
+    usersFile[0]=0;
+    changepages=0;
+
 
     for (i=0; i<7; i++) modeIsEnabled[i]=0;
 
@@ -179,38 +178,35 @@ int readConfig(void) {
     }
 
     changepages=0;
-	removeDim=0;
-	
+    removeDim=0;
 
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
-		// since this is for Nextion displays, we assume Nextion is enabled,
-		//  so we do not check this and only search for the screenLayout variable
-		if (buffer[0] == '#') {
-			continue;
-		}
-		if (buffer[0] == '[') {
-			ok=0;
-			if (strncmp(buffer, "[D-Star]", 8) == 0) 		ok=C_DSTAR;
-			if (strncmp(buffer, "[DMR]", 5) == 0) 			ok=C_DMR;
-			if (strncmp(buffer, "[System Fusion]", 15) == 0) 	ok=C_YSF;
-			if (strncmp(buffer, "[P25]", 5) == 0) 			ok=C_P25;
-			if (strncmp(buffer, "[NXDN]", 6) == 0) 		ok=C_NXDN;
-			if (strncmp(buffer, "[POCSAG]", 6) == 0) 		ok=C_POCSAG;
-			if (strncmp(buffer, "[D-Star Network]", 16) == 0) 	ok=C_DSTARNET;
-			if (strncmp(buffer, "[DMR Network]", 13) == 0) 	ok=C_DMRNET;
-			if (strncmp(buffer, "[System Fusion Network]", 23) == 0) ok=C_YSFNET;
-			if (strncmp(buffer, "[P25 Network]", 13) == 0) 	ok=C_P25NET;
-			if (strncmp(buffer, "[NXDN Network]", 14) == 0) 	ok=C_NXDNNET;
-
-			if (strncmp(buffer, "[Info]", 6) == 0) 		ok=C_INFO;
-			if (strncmp(buffer, "[Nextion]", 9) == 0) 		ok=C_NEXTION;
-			if (strncmp(buffer, "[Log]", 5) == 0) 			ok=C_LOG;
-			if (strncmp(buffer, "[Transparent Data]", 18) == 0) 	ok=C_TRANSPARENT;
-			if (strncmp(buffer, "[NextionDriver]", 15) == 0) 	ok=C_NEXTIONDRIVER;
-		}
-
+        // since this is for Nextion displays, we assume Nextion is enabled,
+        //  so we do not check this and only search for the screenLayout variable
+        if (buffer[0] == '#') {
+            continue;
+        }
+        if (buffer[0] == '[') {
+            ok=0;
+            if (strncmp(buffer, "[D-Star]", 8) == 0)         ok=C_DSTAR;
+            if (strncmp(buffer, "[DMR]", 5) == 0)         ok=C_DMR;
+            if (strncmp(buffer, "[System Fusion]", 15) == 0)     ok=C_YSF;
+            if (strncmp(buffer, "[P25]", 5) == 0)         ok=C_P25;
+            if (strncmp(buffer, "[NXDN]", 6) == 0)         ok=C_NXDN;
+            if (strncmp(buffer, "[POCSAG]", 6) == 0)         ok=C_POCSAG;
+            if (strncmp(buffer, "[D-Star Network]", 16) == 0)     ok=C_DSTARNET;
+            if (strncmp(buffer, "[DMR Network]", 13) == 0)     ok=C_DMRNET;
+            if (strncmp(buffer, "[System Fusion Network]", 23) == 0) ok=C_YSFNET;
+            if (strncmp(buffer, "[P25 Network]", 13) == 0)     ok=C_P25NET;
+            if (strncmp(buffer, "[NXDN Network]", 14) == 0)     ok=C_NXDNNET;
+            if (strncmp(buffer, "[Info]", 6) == 0)         ok=C_INFO;
+            if (strncmp(buffer, "[Nextion]", 9) == 0)         ok=C_NEXTION;
+            if (strncmp(buffer, "[Log]", 5) == 0)         ok=C_LOG;
+            if (strncmp(buffer, "[Transparent Data]", 18) == 0) ok=C_TRANSPARENT;
+            if (strncmp(buffer, "[NextionDriver]", 15) == 0)     ok=C_NEXTIONDRIVER;
+        }
         char* key   = strtok(buffer, " \t=\r\n");
         if (key == NULL)
             continue;
@@ -219,7 +215,7 @@ int readConfig(void) {
         if (value == NULL)
             continue;
 
-        //1-20 = modes enebled/disabled
+        //1-20 = modes enabled/disabled
         if (ok<21) {
             if (strcmp(key, "Enable") == 0) {
                 modeIsEnabled[ok] = (unsigned int)atoi(value);
@@ -227,6 +223,7 @@ int readConfig(void) {
             }
         }
 
+#ifdef XTRA
         if (ok==C_INFO) {
             if (strcmp(key, "RXFrequency") == 0) {
                 RXfrequency = (unsigned int)atoi(value);
@@ -245,6 +242,7 @@ int readConfig(void) {
                 found++;
             }
         }
+#endif
         if (ok==C_NEXTION) {
             if (strcmp(key, "Port") == 0) {
                 strcpy(nextionDriverLink,value);
@@ -263,31 +261,28 @@ int readConfig(void) {
         }
 */
 
-
-
         if (ok==C_TRANSPARENT) {
             if (strcmp(key, "Enable") == 0) {
                 transparentIsEnabled = (unsigned int)atoi(value);
-				writelog(LOG_NOTICE,"Use Transparent Connection: %s", (transparentIsEnabled==0) ? "NO" : "YES");
+                writelog(LOG_NOTICE,"Use Transparent Connection: %s", (transparentIsEnabled==0) ? "NO" : "YES");
                 found++;
             }
             if (strcmp(key, "LocalPort") == 0) {
-                strcpy(remotePort,value);	//yes! the local port from MMDVMHost is our remote port !
-				writelog(LOG_NOTICE,"  Remote port: %s", remotePort);
+                strcpy(remotePort,value);    //yes! the local port from MMDVMHost is our remote port !
+                writelog(LOG_NOTICE,"  Remote port: %s", remotePort);
                 found++;
             }
             if (strcmp(key, "RemotePort") == 0) {
-                strcpy(localPort,value);	//yes! the remote port from MMDVMHost is our local port !
-				writelog(LOG_NOTICE,"  Local port: %s", localPort);
+                strcpy(localPort,value);    //yes! the remote port from MMDVMHost is our local port !
+                writelog(LOG_NOTICE,"  Local port: %s", localPort);
                 found++;
             }
             if (strcmp(key, "SendFrameType") == 0) {
                 sendFrameType = (unsigned int)atoi(value);
-				writelog(LOG_NOTICE,"  Send Frame Type: %s", (sendFrameType==0) ? "NO" : "YES");
+                writelog(LOG_NOTICE,"  Send Frame Type: %s", (sendFrameType==0) ? "NO" : "YES");
                 found++;
             }
-		}
-
+        }
 
         if (ok==C_NEXTIONDRIVER) {
             if (strcmp(key, "Port") == 0) {
@@ -322,7 +317,6 @@ int readConfig(void) {
                 found++;
             }
         }
-
     }
     fclose(fp);
 
@@ -354,8 +348,6 @@ int getDiskFree(void){
     return (100*free)/size;
   }
 }
-
-
 
 
 int search_group(int nr, group_t a[], int m, int n)
@@ -622,32 +614,32 @@ return -1;
 
 
 
-int openSocket(void) {
+int openTalkingSocket(void) {
     const char* hostname="127.0.0.1"; /* localhost */
     struct addrinfo hints;
 
-	if (transparentIsEnabled==0) return 0;
+    if (transparentIsEnabled==0) return 0;
 
     memset(&hints,0,sizeof(hints));
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = 0;
     hints.ai_flags    = AI_ADDRCONFIG;
-	
+
     int err=getaddrinfo(hostname,remotePort,&hints,&display_addr);
     if (err!=0) {
-        writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)\n",err);
+        writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)",err);
         writelog(LOG_ERR,"  getaddrinfo: %s\n", gai_strerror(err));
         return 0;
     }
 
-    display_fd=socket(display_addr->ai_family,display_addr->ai_socktype,display_addr->ai_protocol);
-    if (display_fd==-1) {
+    display_TXsock=socket(display_addr->ai_family,display_addr->ai_socktype,display_addr->ai_protocol);
+    if (display_TXsock==-1) {
         writelog(LOG_ERR,"Transparent Connection: %s\n",strerror(errno));
         return 0;
     }
 
-    writelog(LOG_NOTICE,"Transparent Connection: socket open, fd=%d\n",display_fd);
+    writelog(LOG_NOTICE,"Transparent Connection: talking socket open, fd=%d",display_TXsock);
 
     return 1;
 }
@@ -655,22 +647,62 @@ int openSocket(void) {
 
 int sendTransparentData(int display,char* msg) {
 
-	if (transparentIsEnabled==0) return 0;
+    if (transparentIsEnabled==0) return 0;
 
     char content[100];
 
-	content[0]=0x90;
-	if (display==1) content[0]=0x80;
-	
-	writelog(LOG_NOTICE," NET: %s",msg);
-	
+    content[0]=0x90;
+    if (display==1) content[0]=0x80;
+
+    writelog(LOG_NOTICE," NET: %s",msg);
+
     strcpy(&content[1],msg);
     strcat(content,"\xff\xff\xff");
 
-    if (sendto(display_fd,content,strlen(content),0, display_addr->ai_addr,display_addr->ai_addrlen)==-1) {
-		writelog(LOG_ERR,"Transparent Send: %s\n",strerror(errno));
+    if (sendto(display_TXsock,content,strlen(content),0, display_addr->ai_addr,display_addr->ai_addrlen)==-1) {
+        writelog(LOG_ERR,"Transparent Send: %s",strerror(errno));
         return 0;
     } else 
-		return 1;
+    return 1;
 }
 
+
+int openListeningSocket(void) {
+    int rv;
+    struct addrinfo hints, *servinfo, *p;
+    struct sockaddr_in *addr;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // use my IP
+
+    if ((rv = getaddrinfo(NULL, localPort, &hints, &servinfo)) != 0) {
+        writelog(LOG_ERR, "getaddrinfo: %s", gai_strerror(rv));
+        return 0;
+    }
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        addr = (struct sockaddr_in *)p->ai_addr; 
+        writelog(LOG_NOTICE,"Try to bind %s ...",inet_ntoa((struct in_addr)addr->sin_addr));
+
+        if ((display_RXsock = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            writelog(LOG_ERR,"listener: socket");
+            continue;
+        }
+        if (bind(display_RXsock, p->ai_addr, p->ai_addrlen) == -1) {
+            close(display_RXsock);
+            writelog(LOG_ERR,"listener: bind");
+            continue;
+        }
+        break;
+    }
+    if (p == NULL) {
+        writelog(LOG_ERR, "listener: failed to bind socket");
+        return 0;
+    }
+    fcntl(display_RXsock, F_SETFL, O_NONBLOCK);
+    freeaddrinfo(servinfo);
+    writelog(LOG_NOTICE,"Transparent Connection: listening socket open, fd=%d",display_RXsock);
+    return 1;
+}

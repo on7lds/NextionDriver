@@ -30,6 +30,10 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include <stdarg.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 #include "NextionDriver.h"
 #include "basicFunctions.h"
@@ -40,6 +44,8 @@
 const char ENDMRKR[3]="\xFF\xFF\xFF";
 int RXtail=0;
 char RXbuffertemp[1024];
+int sockRXtail=0;
+char sockRXbuffertemp[1024];
 
 // this function tranforms RGB to nextion 5/6/5 bit
 char* RGBtoNextionColor(int RGB){
@@ -141,7 +147,7 @@ void checkSerial(void) {
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
     if (r>0) {
-//        writelog(LOG_NOTICE,"Receive %d bytes",r);
+//        writelog(LOG_NOTICE,"Receive %d bytes from serial",r);
         RXtail+=r;
         RXbuffertemp[RXtail]=0;
 
@@ -160,12 +166,78 @@ void checkSerial(void) {
 
 
 
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+
+void checkListeningSocket(void) {
+#define MAXBUFLEN 100
+    int numbytes;
+    struct sockaddr_storage their_addr;
+    char buf[4*MAXBUFLEN];
+    socklen_t addr_len;
+    char a[INET6_ADDRSTRLEN];
+    char* s;
+
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(display_RXsock, &fds);
+
+    struct timeval t = {0, 1000};
+    int sel=select(display_RXsock + 1, &fds, NULL, NULL, &t);
+    if (sel<=0) return;
+
+    addr_len = sizeof their_addr;
+    if ((numbytes = recvfrom(display_RXsock, &sockRXbuffertemp[sockRXtail],512 , 0,
+        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+        perror("recvfrom");
+        exit(1);
+    }
+    writelog(LOG_DEBUG,"Got %d bytes from %s",numbytes, inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), a, sizeof a));
+    switch (sockRXbuffertemp[0]) {
+        case 0x80:    writelog(LOG_DEBUG,"Origin : serial passthrough"); break;
+        case 0x90:    writelog(LOG_DEBUG,"Origin : transparent data"); break;
+        default : writelog(LOG_DEBUG,"Origin unknown (%02X)",sockRXbuffertemp[0]); break;
+    }
+    buf[0]=0;
+    unsigned int i;
+    for (i=sockRXtail;i<(sockRXtail+numbytes);i++) if ((sockRXbuffertemp[i]<32)||(sockRXbuffertemp[i]>126)) 
+        sprintf(buf,"%s[%02X]",buf,sockRXbuffertemp[i]); else sprintf(buf,"%s%c",buf,sockRXbuffertemp[i]); 
+        writelog(LOG_DEBUG," data=%s",buf);
+
+    if (numbytes>0) {
+        sockRXtail+=numbytes;
+        sockRXbuffertemp[sockRXtail]=0;
+
+        s=strstr(sockRXbuffertemp,ENDMRKR);
+        while (s!=NULL) {
+//            printf("Found %s\n",sockRXbuffertemp+1);
+            s[0]=0;
+            memcpy(RXbuffer,sockRXbuffertemp+1,strlen(sockRXbuffertemp));
+            handleButton(strlen(sockRXbuffertemp)-1);
+            sockRXtail-=(strlen(sockRXbuffertemp)+3);
+            memmove(&sockRXbuffertemp,&s[3],512);
+            s=strstr(sockRXbuffertemp,ENDMRKR);
+        }
+    }
+    if (sockRXtail>100) sockRXtail=0;
+}
+
+
+
+
 void talkToNextion(void) {
     if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"RX:   %s",TXbuffer);
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
     checkSerial();
+    checkListeningSocket();
     if (!become_daemon) fflush(NULL);
 }
 
@@ -296,6 +368,7 @@ int main(int argc, char *argv[])
 {
     int t,ok,wait;
 
+    display_addr=0;
     check=1000;
     gelezen=0;
     screenLayout=2;
@@ -308,8 +381,8 @@ int main(int argc, char *argv[])
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
     // terminate on these signals
-    signal(SIGINT, terminate);			// 'Ctrl-C'
-    signal(SIGQUIT, terminate);			// 'Ctrl-\'
+    signal(SIGINT, terminate);            // 'Ctrl-C'
+    signal(SIGQUIT, terminate);            // 'Ctrl-\'
     signal(SIGHUP, terminate);
     signal(SIGTERM, terminate);
     signal(SIGUSR1, terminate);
@@ -353,8 +426,8 @@ int main(int argc, char *argv[])
                 break;
             case 'h':
             case ':':
-				printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
-				printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n");
+                printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
+                printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n");
                 printf("\nUsage: %s -c <MMDVM config file> [-f] [-d] [-h]\n\n", argv[0]);
                 printf("  -c\tspecify the MMDVM config file, which has to be extended with the NetxtionDriver config\n");
                 printf("  -f\tspecify the directory with data files (groups, users)\n");
@@ -399,13 +472,13 @@ int main(int argc, char *argv[])
 
     writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
-	if (strcmp(nextionPort,"modem")!=0) {
-		if (screenLayout==4) {
-			fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
-		} else {
-			fd2=open_nextion_serial_port(nextionPort,BAUDRATE3);
-		}
-	} else fd2=-1;
+    if (strcmp(nextionPort,"modem")!=0) {
+        if (screenLayout==4) {
+            fd2=open_nextion_serial_port(nextionPort,BAUDRATE4);
+        } else {
+            fd2=open_nextion_serial_port(nextionPort,BAUDRATE3);
+        }
+    } else fd2=-1;
 
     ok=unlink(nextionDriverLink);
 //    if (ok!=?) { writelog(LOG_ERR,"Link %s could not be removed (%d). Exiting.",nextionDriverLink,ok); exit(EXIT_FAILURE); }
@@ -413,22 +486,24 @@ int main(int argc, char *argv[])
     if (ok!=0) { writelog(LOG_ERR,"Link %s could not be created (%d). Exiting.",nextionDriverLink,ok); exit(EXIT_FAILURE); }
 
     if (fd2>=0) {
-		writelog(2," %s (=%s) <=> %s",nextionDriverLink,mmdvmPort,nextionPort);
-	} else {
-		writelog(2," %s (=%s) <=> modem",nextionDriverLink,mmdvmPort);
-		if ((transparentIsEnabled==0)||(sendFrameType==0)) { 
-			writelog(LOG_ERR,"Unable to start. For using a display connected to the modem,"); 
-			writelog(LOG_ERR," you have to enable 'Transparent Data' and 'sendFrameType' !"); 
-			exit(EXIT_FAILURE); 
-		}
-	}
-	
+        writelog(2," %s (=%s) <=> %s",nextionDriverLink,mmdvmPort,nextionPort);
+    } else {
+        writelog(2," %s (=%s) <=> modem",nextionDriverLink,mmdvmPort);
+        if ((transparentIsEnabled==0)||(sendFrameType==0)) { 
+            writelog(LOG_ERR,"Unable to start. For using a display connected to the modem,"); 
+            writelog(LOG_ERR," you have to enable 'Transparent Data' and 'sendFrameType' !"); 
+            exit(EXIT_FAILURE); 
+        }
+    }
+
     t=0; wait=0; int r=0;
     char buffer[1024];
     char* s;
     int start=0;
 
-    if (transparentIsEnabled==1) transparentIsEnabled=openSocket();
+    if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
+    if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
+    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
 
     RXtail=0;
     while(1)

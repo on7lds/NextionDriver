@@ -19,7 +19,16 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.04"
+#define NextionDriver_VERSION "1.05"
+
+/* the code to extract RX and TX freq and location has been
+    included inMMDVMHost 20180910 and later, so
+    it is not necessary to do it with NextionDriver any more.
+
+    If you do want nextionDriver to handle these parameters,
+    uncomment the following line                                  */
+//#define XTRA
+
 
 #define TRUE	1
 #define FALSE	0
@@ -47,7 +56,6 @@ char nextionDriverLink[100];
 char configFile[200];
 char datafiledir[500];
 char groupsFile[100],usersFile[100];
-char location[200];
 int verbose, screenLayout;
 
 typedef struct groupdata
@@ -70,12 +78,19 @@ int gelezen;
 int check;
 int page,changepages,removeDim;
 char ipaddr[100];
+#ifdef XTRA
 unsigned int RXfrequency,TXfrequency;
+char location[200];
+#endif
 group_t groups[MAXGROUPS];
 user_t users[MAXUSERS];
 int nmbr_groups, nmbr_users;
 
 int fd1,fd2;
+int display_TXsock;
+int display_RXsock;
+struct addrinfo* display_addr;
+
 int become_daemon;
 
 int modeIsEnabled[20];

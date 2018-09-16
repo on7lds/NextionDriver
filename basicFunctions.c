@@ -34,8 +34,8 @@
 void basicFunctions() {
 
     char text[100];
-	
-	if (strlen(TXbuffer)==0) return;
+
+    if (strlen(TXbuffer)==0) return;
 
     //---------------------------------------------------
     // the 'page' variable holds the last selected page
@@ -84,14 +84,14 @@ void basicFunctions() {
         sprintf(TXbuffer, "t2.txt=\"\"");
     }
 
-	//remove dim if necessary
-	if (removeDim) {
-		if (strstr(TXbuffer,"dim=")!=NULL) {
-			TXbuffer[0]=0;
-			return;
-		}		
-	}
-	
+    //remove dim if necessary
+    if (removeDim) {
+        if (strstr(TXbuffer,"dim=")!=NULL) {
+            TXbuffer[0]=0;
+            return;
+        }
+    }
+
     // if date/time is sent, check IP interface from time to time:
     //   and disk free in %
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)) {
@@ -104,6 +104,7 @@ void basicFunctions() {
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==0)) {
         FILE *deviceInfoFile;
         double val;
+#ifdef XTRA
         //CPU temperature
         deviceInfoFile = fopen ("/sys/class/thermal/thermal_zone0/temp", "r");
         if (deviceInfoFile == NULL) {
@@ -122,7 +123,9 @@ void basicFunctions() {
             fclose(deviceInfoFile);
         }
         sendCommand(text);
-        //CPU frequency
+#endif
+
+       //CPU frequency
         deviceInfoFile = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", "r");
         if (deviceInfoFile == NULL) {
             sprintf(text, "t21.txt=\"?\"");
@@ -152,6 +155,7 @@ void basicFunctions() {
         sprintf(text, "t23.txt=\"%d\"",getDiskFree());
         sendCommand(text);
 
+#ifdef XTRA
         //RXFrequency
         float fx;
         fx=RXfrequency;
@@ -168,7 +172,7 @@ void basicFunctions() {
         //Location
         sprintf(text, "t31.txt=\"%s\"",location);
         sendCommand(text);
-
+#endif
 
         //disable 25356 text 46486
         //enable  1472  text 0
@@ -258,7 +262,7 @@ void basicFunctions() {
             TXbuffer[strlen(TXbuffer)-1]=' ';
             char* l=strchr(&TXbuffer[12], ' ');
             if (l!=NULL) l[0]=0;
-            printf("Zoeken naar [%s] \n",&TXbuffer[12]);
+            writelog(LOG_DEBUG,"Zoeken naar [%s] \n",&TXbuffer[12]);
             user=search_userCALL(&TXbuffer[12],users,0,nmbr_users-1);
         }
 
@@ -286,6 +290,6 @@ void basicFunctions() {
         sendCommand(text);
         sendCommand("click S0,1");
     }
-	
+
 
 }

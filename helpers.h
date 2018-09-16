@@ -48,7 +48,8 @@ void readGroups(void);
 void readUserDB(void);
 void print_users(void);
 int getDiskFree(void);
-int openSocket(void); 
+int openTalkingSocket(void); 
+int openListeningSocket(void); 
 int sendTransparentData(int display, char* msg);
 
 int search_group(int nr, group_t a[], int m, int n);

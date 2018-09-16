@@ -37,6 +37,21 @@ info and buttons to restart MMDVMHost, reboot or poweroff the host, ...
 Yes, it is possible (when NextionDriver is running) to start/stop/restart
 MMDVMHost with buttons on the Nextion display !
 
+When the Nextion display is connected to the serial port of the modem,
+NextionDriver V1.03 and later is able to address that port. 
+How does dis work ?
+Normally, the data to the display goes directly from MMDVMHost to the
+modem, tagged as data for the serial port. The modem will then pass the
+data to the serial port.
+By enabling transparent data, we are able to inject data into MMDVMHost
+and we will tag it as data for the display (this can only be done by
+enabling sendFrameType).
+
+Data from the Nextion (when pressing buttons) will be treated similar and
+will exit MMDVMHost as transparent data.
+***IMPORTANT*** : the firmware of the modem has to pass data from the display
+to MMDVMHost for this to work!
+
 
 How to use this program ?
 =========================
