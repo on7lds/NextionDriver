@@ -52,6 +52,23 @@ void processCommands() {
 //
 //---------------------------------------------------------------------
 
+char last_time[512];
 
+if( page == 0 )
+	{
+	if( strstr( TXbuffer, "t2.txt=" ) > 0 )
+		{
+		if( strcmp( TXbuffer, last_time ) == 0 )
+			{
+			TXbuffer[0] = 0;
+			}
+		else
+			{
+			sprintf( last_time, "%s", TXbuffer );
+			}
+		}
+
+
+	}
 }
 
