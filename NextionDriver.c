@@ -147,7 +147,7 @@ void checkSerial(void) {
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
     if (r>0) {
-//        writelog(LOG_NOTICE,"Receive %d bytes from serial",r);
+//        writelog(LOG_DEBUG,"Receive %d bytes from serial",r);
         RXtail+=r;
         RXbuffertemp[RXtail]=0;
 
@@ -497,7 +497,8 @@ int main(int argc, char *argv[])
     }
 
     t=0; wait=0; int r=0;
-    char buffer[1024];
+    #define SERBUFSIZE 1024
+    char buffer[SERBUFSIZE*2];
     char* s;
     int start=0;
 
@@ -508,24 +509,25 @@ int main(int argc, char *argv[])
     RXtail=0;
     while(1)
     {
-        r = read (fd1,&buffer[start],512);
+        if (start>SERBUFSIZE) start=0;
+        r = read (fd1,&buffer[start],SERBUFSIZE);
         if (r>0) {
-//            writelog(LOG_NOTICE,"Received %d bytes from host",r);
-            memset(&buffer[start+r],0,511);
+//            writelog(LOG_DEBUG,"Received %d bytes from host",r);
+            memset(&buffer[start+r],0,SERBUFSIZE);
             start+=r;
         }
         s=strstr(buffer,ENDMRKR);
         while (s!=NULL) {
             s[0]=0;
             strcpy(TXbuffer,buffer);
-            memmove(&buffer,&s[3],512);
+            memmove(&buffer,&s[3],SERBUFSIZE);
             start-=(strlen(TXbuffer)+3);
             wait=0;
             s=strstr(buffer,ENDMRKR);
-//            writelog(LOG_NOTICE,"Process %s",TXbuffer);
+//            writelog(LOG_DEBUG,"Process %s",TXbuffer);
             talkToNextion();
         }
-        if ((start==0)||(wait++>1000)) { wait=0; memset(buffer,0,1023); TXbuffer[0]=0; talkToNextion(); }
+        if ((start==0)||(wait++>1000)) { wait=0; memset(buffer,0,SERBUFSIZE*2); TXbuffer[0]=0; talkToNextion(); }
 //        usleep(1000);
     }
     close(fd1);

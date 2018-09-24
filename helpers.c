@@ -352,7 +352,7 @@ int getDiskFree(void){
 
 int search_group(int nr, group_t a[], int m, int n)
 {
-    writelog(LOG_DEBUG,"--- Group search for %d (%d - %d)",nr,m,n);
+    writelog(LOG_DEBUG,"--- Group search for ID %d (%d - %d)",nr,m,n);
     if (nr==0) return -1;
     if (m>n) return -1;
 
@@ -377,7 +377,7 @@ int search_group(int nr, group_t a[], int m, int n)
 
 int search_userID(int nr, user_t a[], int m, int n)
 {
-    writelog(LOG_DEBUG,"--- User search for %d (%d [%d] - %d [%d] )",nr,m,a[m].nr,n,a[n].nr);
+    writelog(LOG_DEBUG,"--- User search for ID %d (%d [%d] - %d [%d] )",nr,m,a[m].nr,n,a[n].nr);
 //    usleep(200000);
     if (nr==0) return -1;
     if (m>n) return -1;
@@ -399,7 +399,7 @@ int search_userID(int nr, user_t a[], int m, int n)
 
 int search_userCALL(char* call, user_t a[], int m, int n)
 {
-    writelog(LOG_DEBUG,"--- User search for %s (%d [%s] - %d [%s] )",call,m,a[m].data1,n,a[n].data1);
+    writelog(LOG_DEBUG,"--- User search for call %s (%d [%s] - %d [%s] )",call,m,a[m].data1,n,a[n].data1);
 //    usleep(200000);
     if (strlen(call)==0) return -1;
     if (m>n) return -1;
@@ -654,7 +654,7 @@ int sendTransparentData(int display,char* msg) {
     content[0]=0x90;
     if (display==1) content[0]=0x80;
 
-    writelog(LOG_NOTICE," NET: %s",msg);
+    writelog(LOG_DEBUG," NET: %s",msg);
 
     strcpy(&content[1],msg);
     strcat(content,"\xff\xff\xff");

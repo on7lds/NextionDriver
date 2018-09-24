@@ -262,7 +262,7 @@ void basicFunctions() {
             TXbuffer[strlen(TXbuffer)-1]=' ';
             char* l=strchr(&TXbuffer[12], ' ');
             if (l!=NULL) l[0]=0;
-            writelog(LOG_DEBUG,"Zoeken naar [%s] \n",&TXbuffer[12]);
+            writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_userCALL(&TXbuffer[12],users,0,nmbr_users-1);
         }
 
