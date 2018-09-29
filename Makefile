@@ -13,3 +13,9 @@ NextionDriver:
 
 clean:
 		$(RM) NextionDriver *.o *.d *.bak *~
+
+install:
+		sudo service mmdvmhost stop
+		sudo cp NextionDriver /usr/local/bin
+		sudo service mmdvmhost restart
+
