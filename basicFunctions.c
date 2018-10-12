@@ -79,9 +79,9 @@ void basicFunctions() {
 
     //MMDVM is doing a clean shutdown.
     if ((page==0)&&(strstr(TXbuffer,"MMDVM STOPPED")>0)){
-        sprintf(TXbuffer, "t30.txt=\"\"");
+        sprintf(text, "t30.txt=\"\"");
         sendCommand(text);
-        sprintf(TXbuffer, "t2.txt=\"\"");
+        sprintf(text, "t2.txt=\"\"");
     }
 
     //remove dim if necessary
@@ -104,6 +104,7 @@ void basicFunctions() {
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==0)) {
         FILE *deviceInfoFile;
         double val;
+//see basicFunction.h for info about defining the XTRA condition
 #ifdef XTRA
         //CPU temperature
         deviceInfoFile = fopen ("/sys/class/thermal/thermal_zone0/temp", "r");
@@ -152,7 +153,7 @@ void basicFunctions() {
         sendCommand(text);
 
         //Disk free %
-        sprintf(text, "t23.txt=\"%d\"",getDiskFree());
+        sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
         sendCommand(text);
 
 #ifdef XTRA

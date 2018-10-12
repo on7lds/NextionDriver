@@ -329,21 +329,24 @@ int readConfig(void) {
 }
 
 
-int getDiskFree(void){
+int getDiskFree(int log){
   struct statfs sStats;
   char fname[250];
 
   strcpy(fname,datafiledir);
   strcat(fname,groupsFile);
 
-  if( statfs( fname, &sStats ) == -1 )
+  if( statfs( fname, &sStats ) == -1 ) {
+	writelog(LOG_ERR,"No groups file found, unable to calculate disk size\n");
     return -1;
-  else
-  {
+  } else {
     int size,free;
     //sizes in MB;
     size=((sStats.f_blocks/1024)*sStats.f_bsize)/1024;
     free=((sStats.f_bavail/1024)*sStats.f_bsize)/1024;
+	if (log) {
+		writelog(LOG_NOTICE,"Disk size : %d MB (%d free)",size,free);
+	}
     // in PCT
     return (100*free)/size;
   }

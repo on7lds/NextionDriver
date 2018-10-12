@@ -47,7 +47,7 @@ int readConfig(void);
 void readGroups(void);
 void readUserDB(void);
 void print_users(void);
-int getDiskFree(void);
+int getDiskFree(int log);
 int openTalkingSocket(void); 
 int openListeningSocket(void); 
 int sendTransparentData(int display, char* msg);

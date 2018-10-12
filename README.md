@@ -158,7 +158,7 @@ NextionDriver Options
 |Option       |                                                    |
 |-------------|----------------------------------------------------|
 |Port         | the port to which the Nextion display is connected |
-|LogLeve      | 0 (no logging) ... 4 (verbose logging)             |
+|LogLevel     | 0 (no logging) ... 4 (verbose logging)             |
 |DataFilesPath|where the users and group info files reside         |
 |GroupsFile   |name of the file with talkgroup number <-> name info|
 |DMRidFile    |name of the file with user number <-> name info     |

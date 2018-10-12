@@ -466,6 +466,8 @@ int main(int argc, char *argv[])
 
     readGroups();
     readUserDB();
+	
+	getDiskFree(TRUE);
 
     writelog(2,"Started with screenLayout %d", screenLayout);
     writelog(2,"Started with verbose level %d", verbose);
