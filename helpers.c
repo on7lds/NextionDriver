@@ -337,20 +337,47 @@ int getDiskFree(int log){
   strcat(fname,groupsFile);
 
   if( statfs( fname, &sStats ) == -1 ) {
-	writelog(LOG_ERR,"No groups file found, unable to calculate disk size\n");
+        writelog(LOG_ERR,"No groups file found, unable to calculate disk size\n");
     return -1;
   } else {
     int size,free;
     //sizes in MB;
     size=((sStats.f_blocks/1024)*sStats.f_bsize)/1024;
     free=((sStats.f_bavail/1024)*sStats.f_bsize)/1024;
-	if (log) {
-		writelog(LOG_NOTICE,"Disk size : %d MB (%d free)",size,free);
-	}
+    if (log) {
+        writelog(LOG_NOTICE,"Disk size : %d MB (%d free)",size,free);
+    }
     // in PCT
     return (100*free)/size;
   }
 }
+
+#define LH_PAGES 	7
+#define LH_INDEXES 	20
+#define LH_FIELDS 	40
+
+
+char data[LH_PAGES][LH_FIELDS][LH_INDEXES][100];
+unsigned char startdata[LH_PAGES][LH_FIELDS];
+
+void addLH(char* displaydata ) {
+    int i,field;
+    char* split;
+
+    if ((page<0)||(page>=LH_PAGES)) { writelog(LOG_ERR,"LH: nonexistent page"); return; }
+    split=strstr(displaydata,".txt=");
+    if (split==NULL) { return; }
+    split[0]=0;
+    i=strlen(displaydata);
+    while(i>0) {i--; if ((displaydata[i]<'0')||(displaydata[i]>'9'))displaydata[i]=' '; }
+    field=atoi(displaydata);
+    split++;
+    writelog(LOG_DEBUG,"LH: page %d field %d [%s]",page,field,split);
+
+    i=++startdata[page][field];
+    strncpy(data[page][field][i],split,99);
+}
+
 
 
 int search_group(int nr, group_t a[], int m, int n)

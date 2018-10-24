@@ -153,7 +153,11 @@ void basicFunctions() {
         sendCommand(text);
 
         //Disk free %
-        sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
+        int f=getDiskFree(FALSE);
+        if (f<0) 
+            sprintf(text, "t23.txt=\"??\"");
+        else
+            sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
         sendCommand(text);
 
 #ifdef XTRA

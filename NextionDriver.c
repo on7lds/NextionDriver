@@ -80,8 +80,10 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
+        usleep(5);
         sendTransparentData(MMDVM_DISPLAY,cmd);
         writelog(LOG_DEBUG," TX:  %s",cmd);
+        addLH(TXbuffer);
     }
     if (!become_daemon)fflush(NULL);
 }
@@ -466,8 +468,8 @@ int main(int argc, char *argv[])
 
     readGroups();
     readUserDB();
-	
-	getDiskFree(TRUE);
+
+    getDiskFree(TRUE);
 
     writelog(2,"Started with screenLayout %d", screenLayout);
     writelog(2,"Started with verbose level %d", verbose);
@@ -507,6 +509,16 @@ int main(int argc, char *argv[])
     if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
     writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+
+    sendCommand("page 0");
+    sendCommand("cls 0");
+    sendCommand("dim=100");
+    sendCommand("t0.txt=\"Nextionhelper\"");
+    sendCommand("t1.txt=\"Started\"");
+    getNetworkInterface(ipaddr);
+    netIsActive[0]=getInternetStatus(check);
+    sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);
+    sendCommand(TXbuffer);
 
     RXtail=0;
     while(1)
