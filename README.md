@@ -108,6 +108,7 @@ DataFilesPath=/opt/NextionDriver/
 GroupsFile=groups.txt
 DMRidFile=stripped.csv
 RemoveDim=0
+SleepWhenInactive=60
 ```
 
 
@@ -128,8 +129,7 @@ As of V1.03 the NextionDriver has support for Nextion displays which are
 connected to the modem ('Port=modem' in MMDVM.ini)
 For this, it is *necessary* to use the MMDVMHost code dated 20180815 or later
 (G4KLX GitID #f0ea25d or later). 
-Note: At this moment, you can NOT tell from the MMDVMHost version string
-whether you have the right version or not.
+It surely is OK when the MMDVMHost version string is 20180910 or later.
 
 In the MMDVM.ini file, you **must** enable 'Transparent Data'
  **and** it's option 'SendFrameType', i.e. :
@@ -155,14 +155,16 @@ Port=modem
 
 NextionDriver Options
 =====================
-|Option       |                                                    |
-|-------------|----------------------------------------------------|
-|Port         | the port to which the Nextion display is connected |
-|LogLevel     | 0 (no logging) ... 4 (verbose logging)             |
-|DataFilesPath|where the users and group info files reside         |
-|GroupsFile   |name of the file with talkgroup number <-> name info|
-|DMRidFile    |name of the file with user number <-> name info     |
-|RemoveDim    |do not pass 'dim' commands to the display           |
+|Option           |                                                    |
+|-----------------|----------------------------------------------------|
+|Port             | the port to which the Nextion display is connected |
+|LogLevel         | 0 (no logging) ... 4 (verbose logging)             |
+|DataFilesPath    |where the users and group info files reside         |
+|GroupsFile       |name of the file with talkgroup number <-> name info|
+|DMRidFile        |name of the file with user number <-> name info     |
+|RemoveDim        |do not pass 'dim' commands to the display           |
+|SleepWhenInactive|sleep when no data received for ... seconds 
+                    (display goes to black)                            |
 
 
 
