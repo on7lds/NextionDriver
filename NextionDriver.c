@@ -358,6 +358,15 @@ static void terminate(int sig)
 {
     char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
 
+    sendCommand("sleep=0");
+    sendCommand("ussp=0");
+    sendCommand("page 0");
+    sendCommand("cls 0");
+    sendCommand("dim=50");
+    sendCommand("t0.txt=\"Nextionhelper\"");
+    sendCommand("t2.txt=\"Stopped\"");
+    usleep(5000);
+
     writelog(LOG_ERR, "NextionDriver V%s terminated on signal %s (%s)",NextionDriver_VERSION,signame[sig],strsignal(sig));
     close(fd1);
     close(fd2);
@@ -473,6 +482,8 @@ int main(int argc, char *argv[])
 
     writelog(2,"Started with screenLayout %d", screenLayout);
     writelog(2,"Started with verbose level %d", verbose);
+    if (removeDim) writelog(2,"Dim commands will be removed");
+    if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
 
     writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
@@ -510,11 +521,16 @@ int main(int argc, char *argv[])
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
     writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
 
+    sendCommand("sleep=0");
     sendCommand("page 0");
     sendCommand("cls 0");
     sendCommand("dim=100");
     sendCommand("t0.txt=\"Nextionhelper\"");
-    sendCommand("t1.txt=\"Started\"");
+    sendCommand("t2.txt=\"Started\"");
+    sprintf(TXbuffer,"ussp=%d",sleepWhenInactive);
+    sendCommand(TXbuffer);
+    sendCommand("thup=1");
+
     getNetworkInterface(ipaddr);
     netIsActive[0]=getInternetStatus(check);
     sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);

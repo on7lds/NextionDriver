@@ -76,7 +76,7 @@ typedef struct userdata
 
 int gelezen;
 int check;
-int page,changepages,removeDim;
+int page,changepages,removeDim,sleepWhenInactive;
 char ipaddr[100];
 #ifdef XTRA
 unsigned int RXfrequency,TXfrequency;

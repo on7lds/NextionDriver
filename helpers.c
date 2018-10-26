@@ -179,7 +179,7 @@ int readConfig(void) {
 
     changepages=0;
     removeDim=0;
-
+    sleepWhenInactive=60;
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
@@ -316,6 +316,10 @@ int readConfig(void) {
                 removeDim = (unsigned int)atoi(value);
                 found++;
             }
+            if (strcmp(key, "SleepWhenInactive") == 0) {
+                sleepWhenInactive = (unsigned int)atoi(value);
+                found++;
+            }
         }
     }
     fclose(fp);
@@ -376,6 +380,16 @@ void addLH(char* displaydata ) {
 
     i=++startdata[page][field];
     strncpy(data[page][field][i],split,99);
+}
+
+
+
+void dumpLHlist(void) {
+    int i;
+
+    for (i=0;i<LH_INDEXES;i++){
+        
+    }
 }
 
 
