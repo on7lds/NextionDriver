@@ -364,10 +364,13 @@ int getDiskFree(int log){
 char data[LH_PAGES][LH_FIELDS][LH_INDEXES][100];
 unsigned char startdata[LH_PAGES][LH_FIELDS];
 
-void addLH(char* displaydata ) {
+void addLH(char* displaydatabuf ) {
     int i,field;
     char* split;
+    char displaydata[1000];
 
+    strcpy(displaydata,displaydatabuf);
+    writelog(LOG_DEBUG,"LH: check page %d [%s]",page, displaydata);
     if ((page<0)||(page>=LH_PAGES)) { writelog(LOG_ERR,"LH: nonexistent page"); return; }
     split=strstr(displaydata,".txt=");
     if (split==NULL) { return; }
@@ -377,8 +380,9 @@ void addLH(char* displaydata ) {
     field=atoi(displaydata);
     split++;
     writelog(LOG_DEBUG,"LH: page %d field %d [%s]",page,field,split);
-
-    i=++startdata[page][field];
+    startdata[page][field]++;
+    if (startdata[page][field]>LH_INDEXES) startdata[page][field]=0;
+    i=startdata[page][field];
     strncpy(data[page][field][i],split,99);
 }
 
@@ -390,6 +394,23 @@ void dumpLHlist(void) {
     for (i=0;i<LH_INDEXES;i++){
         
     }
+}
+
+
+void sendScreenData(unsigned int pagenr) {
+    int field;
+    char text[100];
+
+    if (pagenr==0xFE) pagenr=0;
+    if (pagenr>LH_PAGES) { writelog(LOG_ERR,"Refresh Screen: nonexistent page"); return; }
+    writelog(LOG_DEBUG,"Refresh Screen: sending fields for page %d",pagenr);
+    for (field=0; field<LH_FIELDS; field++){
+        sprintf(text,"t%d.%s",field,data[pagenr][field][startdata[page][field]]);
+        if (strlen(data[pagenr][field][startdata[page][field]])>0)
+            sendCommand(text);
+        usleep(500);
+    }
+    writelog(LOG_DEBUG,"Refresh Screen: sending fields done");
 }
 
 

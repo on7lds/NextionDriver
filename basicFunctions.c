@@ -40,26 +40,33 @@ void basicFunctions() {
     //---------------------------------------------------
     // the 'page' variable holds the last selected page
     //---------------------------------------------------
-    if (strcmp(TXbuffer,"page MMDVM")==0) {
-        page=0;
-    }
-    if (strcmp(TXbuffer,"page DStar")==0) {
-        page=1;
-    }
-    if (strcmp(TXbuffer,"page DMR")==0) {
-        page=2;
-    }
-    if (strcmp(TXbuffer,"page YSF")==0) {
-        page=3;
-    }
-    if (strcmp(TXbuffer,"page P25")==0) {
-        page=4;
-    }
-    if (strcmp(TXbuffer,"page NXDN")==0) {
-        page=5;
-    }
-    if (strcmp(TXbuffer,"page POCSAG")==0) {
-        page=6;
+    if (strncmp(TXbuffer,"page ",5)==0) {
+        if (sleepWhenInactive) {
+            sendCommand("ussp=0"); usleep(5000);
+            sprintf(text,"ussp=%d",sleepWhenInactive);
+            sendCommand(text);
+        }
+        if (strcmp(TXbuffer,"page MMDVM")==0) {
+            page=0;
+        }
+        if (strcmp(TXbuffer,"page DStar")==0) {
+            page=1;
+        }
+        if (strcmp(TXbuffer,"page DMR")==0) {
+            page=2;
+        }
+        if (strcmp(TXbuffer,"page YSF")==0) {
+            page=3;
+        }
+        if (strcmp(TXbuffer,"page P25")==0) {
+            page=4;
+        }
+        if (strcmp(TXbuffer,"page NXDN")==0) {
+            page=5;
+        }
+        if (strcmp(TXbuffer,"page POCSAG")==0) {
+            page=6;
+        }
     }
 
     if ((strncmp(TXbuffer,"page ",5)==0)&&(changepages==1)) {

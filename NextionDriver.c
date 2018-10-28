@@ -83,7 +83,7 @@ void sendCommand(char *cmd){
         usleep(5);
         sendTransparentData(MMDVM_DISPLAY,cmd);
         writelog(LOG_DEBUG," TX:  %s",cmd);
-        addLH(TXbuffer);
+        addLH(cmd);
     }
     if (!become_daemon)fflush(NULL);
 }
@@ -102,28 +102,29 @@ void handleButton(int received) {
             writelog(LOG_DEBUG,text);
         }
         if (RXbuffer[0]==42) {
-//            if (!become_daemon) { printf("Received command %d\n",RXbuffer[1]); fflush(NULL); }
-            writelog(LOG_DEBUG,"Received command 0x%02X\n",RXbuffer[1]);
-            if (RXbuffer[1]>239) {
-                    if ((received>2)&&(received<200)) {
-//                        if (!become_daemon) { printf("Received command text \"%s\"\n",&RXbuffer[2]); fflush(NULL); }
-                            writelog(LOG_DEBUG," Execute command \"%s\"",&RXbuffer[2]);
-                            sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
-                            sendCommand(TXbuffer);
-                            if (RXbuffer[1]==241) {
-                                FILE *ls = popen(&RXbuffer[2], "r");
-                                char buf[256];
-                                if (fgets(buf, sizeof(buf), ls) != 0) {
-                                    strtok(buf, "\n");
-                                    writelog(LOG_DEBUG," Command response \"%s\"",buf);
-                                    sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
-                                    sendCommand(TXbuffer);
-                                }
-                                pclose(ls);
-                            } else {
-                                system(&RXbuffer[2]);
+            writelog(LOG_DEBUG,"Received command 0x%02X",RXbuffer[1]);
+            if (RXbuffer[1]>0xEF) {
+                if (RXbuffer[1]==0xFE){
+                    sendScreenData(RXbuffer[2]);
+                } else {
+                if ((received>2)&&(received<200)) {
+                        writelog(LOG_DEBUG," Execute command \"%s\"",&RXbuffer[2]);
+                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
+                        sendCommand(TXbuffer);
+                        if (RXbuffer[1]==0xF1) {
+                            FILE *ls = popen(&RXbuffer[2], "r");
+                            char buf[256];
+                            if (fgets(buf, sizeof(buf), ls) != 0) {
+                                strtok(buf, "\n");
+                                writelog(LOG_DEBUG," Command response \"%s\"",buf);
+                                sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                sendCommand(TXbuffer);
                             }
-                    }
+                            pclose(ls);
+                        } else {
+                            system(&RXbuffer[2]);
+                        }
+                }}
             } else {
                 code=RXbuffer[1];
                 memmove(&RXbuffer,&RXbuffer[2],512);
@@ -146,15 +147,19 @@ void checkSerial(void) {
     if (sel<=0) return;
 
     char* s;
+    int i;
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
     if (r>0) {
 //        writelog(LOG_DEBUG,"Receive %d bytes from serial",r);
+        for(i=0;i<r;i++) if (RXbuffertemp[RXtail+i]==0) RXbuffertemp[RXtail+i]=0xFE;
+
         RXtail+=r;
         RXbuffertemp[RXtail]=0;
 
         s=strstr(RXbuffertemp,ENDMRKR);
         while (s!=NULL) {
+//            writelog(LOG_DEBUG,"Endmarker found");
             s[0]=0;
             memcpy(RXbuffer,RXbuffertemp,strlen(RXbuffertemp)+1);
             handleButton(strlen(RXbuffertemp));
@@ -178,10 +183,9 @@ void *get_in_addr(struct sockaddr *sa)
 
 
 void checkListeningSocket(void) {
-#define MAXBUFLEN 100
     int numbytes;
     struct sockaddr_storage their_addr;
-    char buf[4*MAXBUFLEN];
+    char buf[1000];
     socklen_t addr_len;
     char a[INET6_ADDRSTRLEN];
     char* s;
@@ -208,9 +212,17 @@ void checkListeningSocket(void) {
     }
     buf[0]=0;
     unsigned int i;
-    for (i=sockRXtail;i<(sockRXtail+numbytes);i++) if ((sockRXbuffertemp[i]<32)||(sockRXbuffertemp[i]>126)) 
-        sprintf(buf,"%s[%02X]",buf,sockRXbuffertemp[i]); else sprintf(buf,"%s%c",buf,sockRXbuffertemp[i]); 
-        writelog(LOG_DEBUG," data=%s",buf);
+    for (i=sockRXtail;i<(sockRXtail+numbytes);i++) {
+        if (strlen(buf)<sizeof(buf)-10) {
+            if ((sockRXbuffertemp[i]<32)||(sockRXbuffertemp[i]>126)) 
+                sprintf(buf,"%s[%02X]",buf,sockRXbuffertemp[i]); 
+                else sprintf(buf,"%s%c",buf,sockRXbuffertemp[i]); 
+            } else {
+                sprintf(buf,"%s ...",buf);
+                break;
+            }
+    }
+    writelog(LOG_DEBUG," data=%s",buf);
 
     if (numbytes>0) {
         sockRXtail+=numbytes;

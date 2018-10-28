@@ -108,7 +108,7 @@ DataFilesPath=/opt/NextionDriver/
 GroupsFile=groups.txt
 DMRidFile=stripped.csv
 RemoveDim=0
-SleepWhenInactive=60
+SleepWhenInactive=600
 ```
 
 
@@ -164,7 +164,7 @@ NextionDriver Options
 |DMRidFile        |name of the file with user number <-> name info     |
 |RemoveDim        |do not pass 'dim' commands to the display           |
 |SleepWhenInactive|sleep when no data received for ... seconds 
-                    (display goes to black)                            |
+                    (display goes to black), 0 = never sleep           |
 
 
 
@@ -279,3 +279,17 @@ is sent to the display variable 'msg'
 
 There is an example HMI file included.   
 Press on the MMDVM logo on the main screen to go to the 'system' page  
+  
+  
+* When there is a command  
+   printh 2A  
+   printh FE  
+   printh (number)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+page (number) will be refreshed, that is : all __text__ fields for this page 
+from the last time the page was shown, will be (re)sent to the display.
+Note: this will only be for fields which have a name in the range t0 ... t39
+ 
