@@ -80,9 +80,14 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        usleep(5);
+//-        writelog(LOG_DEBUG," TX:  %s",cmd);
+        if (screenLayout==4)
+            usleep(1042*(strlen(cmd)+1));
+        else
+            usleep(87*(strlen(cmd)+1));
+
         sendTransparentData(MMDVM_DISPLAY,cmd);
-        writelog(LOG_DEBUG," TX:  %s",cmd);
+
         addLH(cmd);
     }
     if (!become_daemon)fflush(NULL);
@@ -106,6 +111,12 @@ void handleButton(int received) {
             if (RXbuffer[1]>0xEF) {
                 if (RXbuffer[1]==0xFE){
                     sendScreenData(RXbuffer[2]);
+                } else 
+                if ((RXbuffer[1]==0xFD)&&(received==4)){
+                    LHlist(RXbuffer[2],RXbuffer[3]);
+                } else
+                if (RXbuffer[1]==0xFC){
+                    dumpLHlist();
                 } else {
                 if ((received>2)&&(received<200)) {
                         writelog(LOG_DEBUG," Execute command \"%s\"",&RXbuffer[2]);
@@ -392,7 +403,7 @@ int main(int argc, char *argv[])
     int t,ok,wait;
 
     display_addr=0;
-    check=1000;
+    check=0;
     gelezen=0;
     screenLayout=2;
 

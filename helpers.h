@@ -47,6 +47,8 @@ pid_t proc_find(const char* name);
 int readConfig(void);
 void addLH(char*);
 void sendScreenData(unsigned int);
+void LHlist(int,int);
+void dumpLHlist(void);
 void readGroups(void);
 void readUserDB(void);
 void print_users(void);

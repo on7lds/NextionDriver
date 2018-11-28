@@ -320,6 +320,10 @@ int readConfig(void) {
                 sleepWhenInactive = (unsigned int)atoi(value);
                 found++;
             }
+            if (strcmp(key, "ShowModesStatus") == 0) {
+                showModesStatus = (unsigned int)atoi(value);
+                found++;
+            }
         }
     }
     fclose(fp);
@@ -362,16 +366,27 @@ int getDiskFree(int log){
 
 
 char data[LH_PAGES][LH_FIELDS][LH_INDEXES][100];
-unsigned char startdata[LH_PAGES][LH_FIELDS];
+unsigned char startdata[LH_PAGES];
+unsigned char inhibit;
 
 void addLH(char* displaydatabuf ) {
-    int i,field;
+    int i,f,field, test1, test2;
     char* split;
     char displaydata[1000];
 
+    if ((displaydatabuf[0]=='L')&&(displaydatabuf[1]=='H'))return;
     strcpy(displaydata,displaydatabuf);
-    writelog(LOG_DEBUG,"LH: check page %d [%s]",page, displaydata);
+    writelog(LOG_DEBUG,"  LH: check [%s] on page %d",displaydata,page);
     if ((page<0)||(page>=LH_PAGES)) { writelog(LOG_ERR,"LH: nonexistent page"); return; }
+
+    split=strstr(displaydata,"=");
+    if ((split!=NULL)&&(strstr(displaydata,"MMDVM.status.val")!=NULL)) {
+        split[0]=' ';
+        statusval=atoi(split);
+        return;
+    }
+
+
     split=strstr(displaydata,".txt=");
     if (split==NULL) { return; }
     split[0]=0;
@@ -379,20 +394,66 @@ void addLH(char* displaydatabuf ) {
     while(i>0) {i--; if ((displaydata[i]<'0')||(displaydata[i]>'9'))displaydata[i]=' '; }
     field=atoi(displaydata);
     split++;
-    writelog(LOG_DEBUG,"LH: page %d field %d [%s]",page,field,split);
-    startdata[page][field]++;
-    if (startdata[page][field]>LH_INDEXES) startdata[page][field]=0;
-    i=startdata[page][field];
+    strncpy(data[page][field][0],split,99);
+    writelog(LOG_DEBUG,"  LH: page %d field %d is [%s]",page,field,split);
+
+    test1=((statusval==42)||(statusval==62)||(statusval==70)||(statusval==82)||(statusval==102)||(statusval==122)||(statusval==132));
+    if (test1) { printf("NO Inhibit\n "); inhibit=0; }
+    test2=((statusval==41)||(statusval==61)||(statusval==69)||(statusval==81)||(statusval==101)||(statusval==121)||(statusval==131)
+            ||(statusval==64)||(statusval==72));
+    if (test2||inhibit) { printf("Inhibit\n "); inhibit=1; return; }
+
+    if (startdata[page]==0) startdata[page]=1;
+printf("===page %d field %d index %d current[%s] split[%s] test[%c]\n",page,field,startdata[page],data[page][field][startdata[page]],split,test1?'Y':'N');
+    if ( (page==0)||(test1) ) {
+        startdata[page]++;
+//												if (page>0)printf("-----------New index !-----------\n");
+    }
+    if (startdata[page]>=LH_INDEXES) startdata[page]=1;
+    i=startdata[page];
+    if ((page==0)||(test1)){ for (f=0;f<LH_FIELDS;f++) strncpy(data[page][f][i],data[page][f][0],99); strcpy(data[page][f][0],""); statusval=0; }
     strncpy(data[page][field][i],split,99);
+printf("===write page%d field %d index %d split[%s] \n",page,field,i,split);
+
+//for (f=0;f<LH_FIELDS;f++) if (strlen(data[page][f][i])>0)printf("page %d index %d veld %d [%s]\n",page,i,f,data[page][f][i]);
+}
+
+
+void LHlist(int page,int aant) {
+    int i,f,s;
+    char text[100];
+
+//nog niet OK
+    if (aant>=LH_INDEXES)aant=LH_INDEXES;
+    writelog(LOG_DEBUG,"Last Heard: page %d, %d lines",page,aant);
+
+    for (i=0;i<aant;i++){
+        s=startdata[page]-i; if (s<1) s+=LH_INDEXES;
+//printf("--> %d --> %d  \n",i,s);
+        for (f=0;f<LH_FIELDS;f++) {
+            if (strlen(data[page][f][s])>1) {
+                sprintf(text,"LH%dt%d.%s",i,f,data[page][f][s]);
+                sendCommand(text); usleep(50);
+            }
+        }
+    }
 }
 
 
 
 void dumpLHlist(void) {
-    int i;
+    int p,i,f;
 
-    for (i=0;i<LH_INDEXES;i++){
-        
+//    for (p=0;p<LH_PAGES;p++) {
+p=2;{
+        printf("---------------------PAGE %d--(start %d)-------------------\n",p,startdata[p]);
+        for (i=0;i<LH_INDEXES;i++){
+            printf("Index %d : ",i);
+            for (f=0;f<LH_FIELDS;f++) {
+                if (strlen(data[p][f][i])>6) printf("(%d)t%d [%s]  ",startdata[p],f,data[p][f][i]);
+            }
+            printf("\n");
+        }
     }
 }
 
@@ -403,12 +464,14 @@ void sendScreenData(unsigned int pagenr) {
 
     if (pagenr==0xFE) pagenr=0;
     if (pagenr>LH_PAGES) { writelog(LOG_ERR,"Refresh Screen: nonexistent page"); return; }
+
     writelog(LOG_DEBUG,"Refresh Screen: sending fields for page %d",pagenr);
     for (field=0; field<LH_FIELDS; field++){
-        sprintf(text,"t%d.%s",field,data[pagenr][field][startdata[page][field]]);
-        if (strlen(data[pagenr][field][startdata[page][field]])>0)
+        sprintf(text,"t%d.%s",field,data[pagenr][field][startdata[page]]);
+        if (strlen(data[pagenr][field][startdata[page]])>0) {
+            writelog(LOG_DEBUG," LH: sending %s",text);
             sendCommand(text);
-        usleep(500);
+        }
     }
     writelog(LOG_DEBUG,"Refresh Screen: sending fields done");
 }
@@ -719,7 +782,7 @@ int sendTransparentData(int display,char* msg) {
     content[0]=0x90;
     if (display==1) content[0]=0x80;
 
-    writelog(LOG_DEBUG," NET: %s",msg);
+//-    writelog(LOG_DEBUG," NET: %s",msg);
 
     strcpy(&content[1],msg);
     strcat(content,"\xff\xff\xff");

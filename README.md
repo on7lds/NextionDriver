@@ -109,6 +109,7 @@ GroupsFile=groups.txt
 DMRidFile=stripped.csv
 RemoveDim=0
 SleepWhenInactive=600
+ShowModesStatus=0
 ```
 
 
@@ -155,17 +156,17 @@ Port=modem
 
 NextionDriver Options
 =====================
-|Option           |                                                    |
+|Option           |Explanation                                         |
 |-----------------|----------------------------------------------------|
-|Port             | the port to which the Nextion display is connected |
-|LogLevel         | 0 (no logging) ... 4 (verbose logging)             |
+|Port             |the port to which the Nextion display is connected  |
+|LogLevel         |0 (no logging) ... 4 (verbose logging)              |
 |DataFilesPath    |where the users and group info files reside         |
 |GroupsFile       |name of the file with talkgroup number <-> name info|
 |DMRidFile        |name of the file with user number <-> name info     |
 |RemoveDim        |do not pass 'dim' commands to the display           |
-|SleepWhenInactive|sleep when no data received for ... seconds 
-                    (display goes to black), 0 = never sleep           |
-
+|SleepWhenInactive|sleep when no data received for ... seconds         |
+|                 |  (display goes to black), 0 = never sleep          |
+|ShowModesStatus  |send colors to show status of modes like pi-star    |
 
 
 How to autostart this program ?
@@ -290,6 +291,20 @@ Press on the MMDVM logo on the main screen to go to the 'system' page
    printh FF  
   
 page (number) will be refreshed, that is : all __text__ fields for this page 
-from the last time the page was shown, will be (re)sent to the display.
+from the last time the page was shown, will be (re)sent to the display.  
 Note: this will only be for fields which have a name in the range t0 ... t39
  
+* When there is a command  
+    printh 2A  
+    printh FD  
+    printh (page)  
+    printh (number)  
+    printh FF  
+    printh FF  
+    printh FF  
+  
+the (number) last heard fields of (page) are sent.
+NB : __EXPERIMENTAL !__ (works with some flaws)
+For now : page __has to be 2__ and number <20
+The fiels will be sent and the fieldnames are prepended with 'LH(nr)'
+So: LH0t0 LH0t1 LH0t2 ... LH1t0 LH1t1 LH1t2 ... LH2t0 LH2t1 LH2t2 ...
