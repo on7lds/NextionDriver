@@ -303,8 +303,10 @@ Note: this will only be for fields which have a name in the range t0 ... t39
     printh FF  
     printh FF  
   
-the (number) last heard fields of (page) are sent.
-NB : __EXPERIMENTAL !__ (works with some flaws)
-For now : page __has to be 2__ and number <20
-The fiels will be sent and the fieldnames are prepended with 'LH(nr)'
+the (number) last heard fields of (page) are sent.  
+
+Note : __EXPERIMENTAL !__ (works with some flaws)
+
+For now : page __has to be 2__ and number <20  
+The fiels will be sent and the fieldnames are prepended with 'LH(nr)'  
 So: LH0t0 LH0t1 LH0t2 ... LH1t0 LH1t1 LH1t2 ... LH2t0 LH2t1 LH2t2 ...
