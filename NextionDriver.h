@@ -76,6 +76,7 @@ typedef struct userdata
 
 int gelezen;
 int check;
+unsigned char inhibit;
 int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus;
 long sleepTimeOut;
 char ipaddr[100];

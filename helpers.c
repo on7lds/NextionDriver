@@ -367,7 +367,7 @@ int getDiskFree(int log){
 
 char data[LH_PAGES][LH_FIELDS][LH_INDEXES][100];
 unsigned char startdata[LH_PAGES];
-unsigned char inhibit;
+unsigned char LHinhibit;
 
 void addLH(char* displaydatabuf ) {
     int i,f,field, test1, test2;
@@ -398,13 +398,13 @@ void addLH(char* displaydatabuf ) {
     writelog(LOG_DEBUG,"  LH: page %d field %d is [%s]",page,field,split);
 
     test1=((statusval==42)||(statusval==62)||(statusval==70)||(statusval==82)||(statusval==102)||(statusval==122)||(statusval==132));
-    if (test1) { printf("NO Inhibit\n "); inhibit=0; }
+    if (test1) { writelog(LOG_DEBUG,"NO Inhibit\n "); LHinhibit=0; }
     test2=((statusval==41)||(statusval==61)||(statusval==69)||(statusval==81)||(statusval==101)||(statusval==121)||(statusval==131)
             ||(statusval==64)||(statusval==72));
-    if (test2||inhibit) { printf("Inhibit\n "); inhibit=1; return; }
+    if (test2||LHinhibit) { writelog(LOG_DEBUG,"Inhibit\n "); LHinhibit=1; return; }
 
     if (startdata[page]==0) startdata[page]=1;
-printf("===page %d field %d index %d current[%s] split[%s] test[%c]\n",page,field,startdata[page],data[page][field][startdata[page]],split,test1?'Y':'N');
+//printf("===page %d field %d index %d current[%s] split[%s] test[%c]\n",page,field,startdata[page],data[page][field][startdata[page]],split,test1?'Y':'N');
     if ( (page==0)||(test1) ) {
         startdata[page]++;
 //												if (page>0)printf("-----------New index !-----------\n");
@@ -413,7 +413,7 @@ printf("===page %d field %d index %d current[%s] split[%s] test[%c]\n",page,fiel
     i=startdata[page];
     if ((page==0)||(test1)){ for (f=0;f<LH_FIELDS;f++) strncpy(data[page][f][i],data[page][f][0],99); strcpy(data[page][f][0],""); statusval=0; }
     strncpy(data[page][field][i],split,99);
-printf("===write page%d field %d index %d split[%s] \n",page,field,i,split);
+//printf("===write page%d field %d index %d split[%s] \n",page,field,i,split);
 
 //for (f=0;f<LH_FIELDS;f++) if (strlen(data[page][f][i])>0)printf("page %d index %d veld %d [%s]\n",page,i,f,data[page][f][i]);
 }
@@ -723,7 +723,7 @@ pid_t proc_find(const char* name)
 
         if (fp) {
             if ( (fscanf(fp, "%ld (%[^)]) %c", &pid, pname, &state)) != 3 ){
-                printf("fscanf failed \n");
+                writelog(LOG_DEBUG,"fscanf failed");
                 fclose(fp);
                 closedir(dir);
                 return -1; 

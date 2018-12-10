@@ -310,3 +310,33 @@ Note : __EXPERIMENTAL !__ (works with some flaws)
 For now : page __has to be 2__ and number <20  
 The fiels will be sent and the fieldnames are prepended with 'LH(nr)'  
 So: LH0t0 LH0t1 LH0t2 ... LH1t0 LH1t1 LH1t2 ... LH2t0 LH2t1 LH2t2 ...
+
+* When there is a command  
+   printh 2A  
+   printh FC  
+   printh (number)  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+the inhibit mode wil be set (number=1) / reset (number=0)  
+When inhibit is set to active (1), the current RX buffer will be processed 
+and then all data from MMDVMHost will be dropped.
+This can be practical when changing the Nextion page to your settings page. 
+Then no page changes or field data from MMDVMHost will be sent to the display.
+When inhibit is reset (0) all data from then on will be processed.
+
+* When there is a command  
+   printh 2A  
+   printh FB  
+   printh FF  
+   printh FF  
+   printh FF  
+  
+NextionDriver will search for a .tft file in the DataFilesPath directory 
+where the filename matches the connected Nextion display model.
+i.e. : when the a display NX4832K035_011R is connected, NextionDriver will 
+search for a file NX4832K035.tft and try to load that into the display.
+At this moment, baud rate switching is not yet supported. So the .tft file 
+will be loaded at the active display baudrate (9600 for layout<4 and 115200 for 
+layout 4)

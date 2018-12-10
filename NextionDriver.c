@@ -33,6 +33,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <dirent.h>
 
 
 #include "NextionDriver.h"
@@ -46,6 +47,11 @@ int RXtail=0;
 char RXbuffertemp[1024];
 int sockRXtail=0;
 char sockRXbuffertemp[1024];
+
+
+int open_nextion_serial_port(char* devicename, long BAUD);
+
+
 
 // this function tranforms RGB to nextion 5/6/5 bit
 char* RGBtoNextionColor(int RGB){
@@ -94,12 +100,142 @@ void sendCommand(char *cmd){
 }
 
 
+int checkDisplay(char *model) {
+    char buffer[200],info[8][30];
+    char* p;
+    int i,r,d;
+    int flashsize=0;
+    r = read (fd2,&buffer,200);
+    d=0;
+
+    strcpy(model,"");
+    for (i=0; i<3; i++) {
+        writelog(LOG_DEBUG,"Checking display ...");
+        write(fd2,"\xFF\xFF\xFF",3); write(fd2,"connect",7); write(fd2,"\xFF\xFF\xFF",3); usleep(134000);
+        r = read (fd2,&buffer[d],200);
+        if (r>0) { buffer[r]=0; d+=r; }
+        //comok <touch(1)/notouch(0)>,reserved,model,fw ver,mcu,s/n,flash size
+        if (r>0) {
+            //writelog(LOG_DEBUG,"Received %d bytes",r);
+            p=strstr(buffer,ENDMRKR);
+            if (p==NULL) { usleep (200000); continue; } else { p[0]=0; }
+            p=strstr(buffer,"comok");
+            r=0;
+            if (p!=NULL) {
+                strcpy(info[r],p);
+                p = strtok (buffer,",");
+                while (p != NULL) {
+                    if (r<8) r++;
+                    strcpy(info[r],p);
+                    //printf ("%d: %s\n",r,p);
+                    p = strtok (NULL, ",");
+                }
+                if (r==7) {
+                    writelog(2,"Found Nextion display");
+                    writelog(2," %s display model %s",info[1][6]=='1' ? "Touch" : "No touch",info[3]);
+                    writelog(2," FW %s, MCU %s",info[4],info[5]);
+                    writelog(2," Serial %s",info[6]);
+                    writelog(2," Flash size %s",info[7]);
+
+                    flashsize=atoi(info[7]);
+                    p=strstr(info[3],"_"); if (p!=NULL) p[0]=0;
+                    strcpy(model,info[3]);
+
+                    break;
+                }
+            }
+        }
+        sleep(1);
+    }
+    return flashsize;
+}
+
+
+void updateDisplay(void) {
+
+    int flashsize,filesize,ok,i,r,baudrate,blocks;
+    char model[50];
+    char buffer[4096],bestand[1024];
+    struct dirent *de;
+    FILE *ptr;
+
+    if (screenLayout==4) {
+            baudrate=115200;
+        } else {
+            baudrate=9600;
+        }
+
+    writelog(2,"Trying to update display ...");
+    flashsize=checkDisplay(model);
+    strcat(model,".tft");
+    if (flashsize==0) 
+        { writelog(LOG_ERR,"Could not communicate with display. Cannot update ..."); return; }
+    //search model file
+    ok=0;
+    DIR *dr = opendir(datafiledir);
+    if (dr == NULL)  // opendir returns NULL if couldn't open directory 
+    {
+        writelog(LOG_ERR,"Could not open DataFilesPath directory" );
+        return;
+    }
+    while (((de = readdir(dr)) != NULL)&&(!ok))
+        if (strcasecmp(de->d_name,model)==0) {
+            writelog(LOG_DEBUG,"FOUND %s", de->d_name);
+            strcpy(model,de->d_name);
+            ok=1;
+        }
+    closedir(dr);
+    if (ok==0) 
+        { writelog(LOG_ERR,"Could not find display update file (%s)",model ); return; }
+    sprintf(bestand,"%s/%s",datafiledir,model);
+    ptr = fopen(bestand,"rb");
+    if (ptr==NULL) 
+        { writelog(LOG_ERR,"Could not open file %s",model); return; }
+    //file size ? 
+    fseek(ptr, 0L, SEEK_END);
+    filesize = ftell(ptr);
+    if (filesize<1) 
+        { writelog(LOG_ERR,"Unable to get TFT file size"); return; }
+    //not to big for display flash ?
+    if (filesize>flashsize)
+        { writelog(LOG_ERR,"TFT file to big for flash"); return; }
+    blocks=filesize/4096;
+    writelog(LOG_DEBUG,"I will write %d blocks",blocks);
+    //start update
+    //https://www.itead.cc/blog/nextion-hmi-upload-protocol
+    sprintf(buffer,"whmi-wri %d,%d,0",filesize,baudrate);
+
+    write(fd2,buffer,strlen(buffer));write(fd2,"\xFF\xFF\xFF",3);
+    usleep(500000);
+    r = read (fd2,&buffer,500);
+    //display ready ?
+    if (strstr(buffer,"\0x05")==NULL)
+        { writelog(LOG_ERR,"No response from display to start  update"); return; }
+    //Go !
+    rewind(ptr);
+    r=fread(buffer,1,4096,ptr);
+    while (r>0) {
+        ok=write(fd2,buffer,r);
+        i=50;
+        ok=0;
+        while (!ok && i) {
+            usleep(100000);
+            r=read(fd2,buffer,500);
+            if ((r>0)&&(strstr(buffer,"\0x05")!=NULL)) ok=1; else i--;
+        }
+        if (ok==0)
+            { writelog(LOG_ERR,"No response from display"); fclose(ptr); return; }
+        r=fread(buffer,1,4096,ptr);
+    }
+    fclose(ptr);
+}
+
 void handleButton(int received) {
     char code, text[150];
     if (received>1) {
         {
             sprintf(text,"RX: %d (",received);
-            int i; 
+            int i;
             for (i=0; i<received; i++) {
                 sprintf(&text[strlen(text)], "%02X ",RXbuffer[i]);
             }
@@ -109,16 +245,24 @@ void handleButton(int received) {
         if (RXbuffer[0]==42) {
             writelog(LOG_DEBUG,"Received command 0x%02X",RXbuffer[1]);
             if (RXbuffer[1]>0xEF) {
-                if (RXbuffer[1]==0xFE){
+                if ((RXbuffer[1]==0xFE)&&(received==3)){
                     sendScreenData(RXbuffer[2]);
                 } else 
                 if ((RXbuffer[1]==0xFD)&&(received==4)){
                     LHlist(RXbuffer[2],RXbuffer[3]);
                 } else
-                if (RXbuffer[1]==0xFC){
+                if ((RXbuffer[1]==0xFC)&&(received==3)){
+                    inhibit=RXbuffer[2];
+                    if (inhibit==0xFE) inhibit=0;
+                    writelog(LOG_DEBUG,"Inhibit=%d",inhibit);
+                } else
+                if (RXbuffer[1]==0xFB){
+                    updateDisplay();
+                } else
+                if (RXbuffer[1]==0xF2){
                     dumpLHlist();
                 } else {
-                if ((received>2)&&(received<200)) {
+                if ((RXbuffer[1]<0xF2)&&(received>2)&&(received<200)) {
                         writelog(LOG_DEBUG," Execute command \"%s\"",&RXbuffer[2]);
                         sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
                         sendCommand(TXbuffer);
@@ -381,6 +525,7 @@ static void terminate(int sig)
 {
     char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
 
+    inhibit=0;
     sendCommand("sleep=0");
     sendCommand("ussp=0");
     sendCommand("page 0");
@@ -406,6 +551,7 @@ int main(int argc, char *argv[])
     check=0;
     gelezen=0;
     screenLayout=2;
+    inhibit=0;
 
     become_daemon=TRUE;
     ok=0;
@@ -486,6 +632,9 @@ int main(int argc, char *argv[])
 
     writelog(2,"Starting with verbose level %d", verbose);
 
+    if (proc_find("NextionDriver")>0)
+        writelog(2,"Warning: NextionDriver already running !");
+
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
     if (strlen(datafiledir)<3) {
@@ -534,6 +683,7 @@ int main(int argc, char *argv[])
         }
     }
 
+
     t=0; wait=0; int r=0;
     #define SERBUFSIZE 1024
     char buffer[SERBUFSIZE*2];
@@ -543,6 +693,12 @@ int main(int argc, char *argv[])
     if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
     writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+
+    int flash=0;
+    char model[40];
+
+    flash=checkDisplay(model);
+    if (flash==0) writelog(LOG_ERR,"No Nextion display found.");
 
     sendCommand("sleep=0");
     sendCommand("page 0");
@@ -564,8 +720,14 @@ int main(int argc, char *argv[])
     {
         if (start>SERBUFSIZE) start=0;
         r = read (fd1,&buffer[start],SERBUFSIZE);
+        if ((r>0)&&(inhibit)) {
+            writelog(LOG_DEBUG,"Inhibit %d: dropping %d bytes from host",inhibit,r);
+            r=0;
+            start=0;
+            memset(&buffer,0,SERBUFSIZE);
+        }
         if (r>0) {
-//            writelog(LOG_DEBUG,"Received %d bytes from host",r);
+            writelog(LOG_DEBUG,"Received %d bytes from host",r);
             memset(&buffer[start+r],0,SERBUFSIZE);
             start+=r;
         }
