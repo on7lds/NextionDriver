@@ -216,7 +216,7 @@ void updateDisplay(void) {
     //Go !
     writelog(2,"Start update ...");
     writelog(2," %s will use %d%%%% of the flash",model,((filesize*100)/flashsize));
-return;
+
     tijd=time(NULL);
     rewind(ptr);
     r=fread(buffer,1,4096,ptr);
