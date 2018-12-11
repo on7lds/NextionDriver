@@ -34,6 +34,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <time.h>
 
 
 #include "NextionDriver.h"
@@ -157,6 +158,7 @@ void updateDisplay(void) {
     char model[50];
     char buffer[4096],bestand[1024];
     struct dirent *de;
+    time_t tijd;
     FILE *ptr;
 
     if (screenLayout==4) {
@@ -212,6 +214,10 @@ void updateDisplay(void) {
     if (strstr(buffer,"\0x05")==NULL)
         { writelog(LOG_ERR,"No response from display to start  update"); return; }
     //Go !
+    writelog(2,"Start update ...");
+    writelog(2," %s will use %d%%%% of the flash",model,((filesize*100)/flashsize));
+return;
+    tijd=time(NULL);
     rewind(ptr);
     r=fread(buffer,1,4096,ptr);
     while (r>0) {
@@ -228,6 +234,9 @@ void updateDisplay(void) {
         r=fread(buffer,1,4096,ptr);
     }
     fclose(ptr);
+    tijd=time(NULL)-tijd;
+    writelog(2,"Update done in %d secs.",tijd);
+    
 }
 
 void handleButton(int received) {
