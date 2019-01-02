@@ -704,7 +704,7 @@ pid_t proc_find(const char* name)
     struct dirent* ent;
     char buf[512];
 
-    long  pid;
+    long  pid,mypid;
     char pname[100] = {0,};
     char state;
     FILE *fp=NULL; 
@@ -713,10 +713,11 @@ pid_t proc_find(const char* name)
 //        perror("can't open /proc");
         return -1;
     }
+    mypid=getpid();
 
     while((ent = readdir(dir)) != NULL) {
         long lpid = atol(ent->d_name);
-        if(lpid < 0)
+        if ((lpid < 0)||(lpid == mypid))
             continue;
         snprintf(buf, sizeof(buf), "/proc/%ld/stat", lpid);
         fp = fopen(buf, "r");

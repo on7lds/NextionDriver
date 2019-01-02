@@ -563,6 +563,7 @@ int main(int argc, char *argv[])
     inhibit=0;
 
     become_daemon=TRUE;
+    ignore_other=FALSE;
     ok=0;
     verbose=0;
 
@@ -586,7 +587,7 @@ int main(int argc, char *argv[])
 
     datafiledir[0]=0;
 
-    while ((t = getopt(argc, argv, "dVvm:n:c:f:h")) != -1) {
+    while ((t = getopt(argc, argv, "dVvm:n:c:f:hi")) != -1) {
         switch (t) {
             case 'd':
                 become_daemon = FALSE;
@@ -613,6 +614,9 @@ int main(int argc, char *argv[])
             case 'f':
                 strncpy(datafiledir,optarg,sizeof(datafiledir)-2);
                 break;
+            case 'i':
+                ignore_other = TRUE;
+                break;
             case 'h':
             case ':':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
@@ -621,6 +625,7 @@ int main(int argc, char *argv[])
                 printf("  -c\tspecify the MMDVM config file, which has to be extended with the NetxtionDriver config\n");
                 printf("  -f\tspecify the directory with data files (groups, users)\n");
                 printf("  -d\tstart in debug mode (do not go to backgroud and print communication data)\n");
+                printf("  -i\tignore other instances and run anyway\n");
                 printf("  -v\tverbose (when running in daemon mode, dumps logging to syslog)\n");
                 printf("  -V\tdisplay version and exit\n");
                 printf("  -h\tthis help.\n\n");
@@ -641,8 +646,15 @@ int main(int argc, char *argv[])
 
     writelog(2,"Starting with verbose level %d", verbose);
 
-    if (proc_find("NextionDriver")>0)
-        writelog(2,"Warning: NextionDriver already running !");
+
+    if (proc_find("NextionDriver")>0) {
+        if (ignore_other) {
+            writelog(2,"Warning: NextionDriver with PID %d already running !",proc_find("NextionDriver"));
+        } else {
+            writelog(LOG_ERR,"ERROR: NextionDriver with PID %d already running, I'm quitting !",proc_find("NextionDriver"));
+            exit(EXIT_FAILURE);
+        }
+    }
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 

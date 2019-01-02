@@ -93,7 +93,7 @@ int display_TXsock;
 int display_RXsock;
 struct addrinfo* display_addr;
 
-int become_daemon;
+int become_daemon,ignore_other;
 
 int modeIsEnabled[20];
 int netIsActive[10];
