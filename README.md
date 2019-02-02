@@ -156,17 +156,19 @@ Port=modem
 
 NextionDriver Options
 =====================
-|Option           |Explanation                                         |
-|-----------------|----------------------------------------------------|
-|Port             |the port to which the Nextion display is connected  |
-|LogLevel         |0 (no logging) ... 4 (verbose logging)              |
-|DataFilesPath    |where the users and group info files reside         |
-|GroupsFile       |name of the file with talkgroup number <-> name info|
-|DMRidFile        |name of the file with user number <-> name info     |
-|RemoveDim        |do not pass 'dim' commands to the display           |
-|SleepWhenInactive|sleep when no data received for ... seconds         |
-|                 |  (display goes to black), 0 = never sleep          |
-|ShowModesStatus  |send colors to show status of modes like pi-star    |
+|Option           |Explanation                                            |
+|-----------------|-------------------------------------------------------|
+|Port             |the port to which the Nextion display is connected     |
+|LogLevel         |0 (no logging) ... 4 (verbose logging)                 |
+|DataFilesPath    |where the users and group info files reside            |
+|GroupsFile       |name of the file with talkgroup number <-> name info   |
+|DMRidFile        |name of the file with user number <-> name info        |
+|RemoveDim        |do not pass 'dim' commands to the display              |
+|SleepWhenInactive|sleep when no data received for ... seconds            |
+|                 |  (display goes to black), 0 = never sleep             |
+|ShowModesStatus  |send colors to show status of modes like pi-star       |
+|WaitForLan       |show counter while waiting for LAN and show ip address |
+|                 |  when LAN becomes active (before start of MMDVMHost)  |
 
 
 How to autostart this program ?
@@ -184,7 +186,7 @@ mmdvmhost.service
 [Unit]
 Description=MMDVM Host Service
 After=syslog.target network.target
-BindsTo=nextion-helper.service
+Requires=nextiondriver.service
 
 [Service]
 User=root
@@ -199,26 +201,29 @@ WantedBy=multi-user.target
 
 
 
-Then you make a service 'nextion-helper.service'
+Then you make a service 'nextiondriver.service'
 where you tell it needs to start before MMDVMHost :
 
 
-nextion-helper.service
+nextiondriver.service
 ```
 [Unit]
-Description=Nextion Helper Service Service
-After=syslog.target network.target
-Before= mmdvmhost.service
+Description=NextionDriver service
+DefaultDependencies=no
+After=local-fs.target wifi-country.service
+Before=timers.target
 
 [Service]
 User=root
 WorkingDirectory=/opt/MMDVMHost
 Type=forking
-ExecStart=/opt/NextionDriver/NextionDriver -c /opt/MMDVM.ini
+ExecStart=/opt/NextionDriver/NextionDriver -i -c /opt/MMDVM.ini -vvvv
 ExecStop=/usr/bin/killall NextionDriver
 
 [Install]
 WantedBy=multi-user.target
+WantedBy=network-online.target
+RequiredBy=mmdvmhost.service
 ```
 
 How to change this program to your needs ?

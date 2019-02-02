@@ -180,6 +180,7 @@ int readConfig(void) {
     changepages=0;
     removeDim=0;
     sleepWhenInactive=60;
+    waitForLan=1;
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
@@ -324,6 +325,10 @@ int readConfig(void) {
                 showModesStatus = (unsigned int)atoi(value);
                 found++;
             }
+            if (strcmp(key, "WaitForLan") == 0) {
+                waitForLan = (unsigned int)atoi(value);
+                found++;
+            }
         }
     }
     fclose(fp);
@@ -396,12 +401,34 @@ void addLH(char* displaydatabuf ) {
     split++;
     strncpy(data[page][field][0],split,99);
     writelog(LOG_DEBUG,"  LH: page %d field %d is [%s]",page,field,split);
+    writelog(LOG_DEBUG,"  LH: statusval %d",statusval);
+
+/*
+     42 : Dstar type/my1/my2
+     62 : DMR ID1
+     70 : DMR ID2
+     82 : YSF src
+    102 : P25 source
+    122 : NXDN source
+    132 : POCSAG RIC
+*/
 
     test1=((statusval==42)||(statusval==62)||(statusval==70)||(statusval==82)||(statusval==102)||(statusval==122)||(statusval==132));
-    if (test1) { writelog(LOG_DEBUG,"NO Inhibit\n "); LHinhibit=0; }
+    if (test1) { writelog(LOG_DEBUG,"NO LH Inhibit\n "); LHinhibit=0; }
+/*
+     41 : D-Star listening
+     61 : DMR listening1
+     64 : DMR Call end1
+     69 : DMR listening2
+     72 : DMR Call end2
+     81 : YSF listening
+    101 : P25 listening
+    121 : NXDN listening
+*/
     test2=((statusval==41)||(statusval==61)||(statusval==69)||(statusval==81)||(statusval==101)||(statusval==121)||(statusval==131)
-            ||(statusval==64)||(statusval==72));
-    if (test2||LHinhibit) { writelog(LOG_DEBUG,"Inhibit\n "); LHinhibit=1; return; }
+            ||(statusval==64)||(statusval==72)
+            );
+    if (test2||LHinhibit) { writelog(LOG_DEBUG,"LH Inhibit\n "); LHinhibit=1; return; }
 
     if (startdata[page]==0) startdata[page]=1;
 //printf("===page %d field %d index %d current[%s] split[%s] test[%c]\n",page,field,startdata[page],data[page][field][startdata[page]],split,test1?'Y':'N');
@@ -783,7 +810,7 @@ int sendTransparentData(int display,char* msg) {
     content[0]=0x90;
     if (display==1) content[0]=0x80;
 
-//-    writelog(LOG_DEBUG," NET: %s",msg);
+    writelog(LOG_DEBUG," NET: %s",msg);
 
     strcpy(&content[1],msg);
     strcat(content,"\xff\xff\xff");

@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2019 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ char* RGBtoNextionColor(int RGB){
     return color;
 }
 
+
 void writelog(int level, char *fmt, ...)
 {
     va_list args;
@@ -87,7 +88,7 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-//-        writelog(LOG_DEBUG," TX:  %s",cmd);
+        writelog(LOG_DEBUG," TX:  %s",cmd);
         if (screenLayout==4)
             usleep(1042*(strlen(cmd)+1));
         else
@@ -153,7 +154,6 @@ int checkDisplay(char *model) {
 
 
 void updateDisplay(void) {
-
     int flashsize,filesize,ok,i,r,baudrate,blocks;
     char model[50];
     char buffer[4096],bestand[1024];
@@ -236,8 +236,9 @@ void updateDisplay(void) {
     fclose(ptr);
     tijd=time(NULL)-tijd;
     writelog(2,"Update done in %d secs.",tijd);
-    
+
 }
+
 
 void handleButton(int received) {
     char code, text[150];
@@ -407,8 +408,6 @@ void checkListeningSocket(void) {
 }
 
 
-
-
 void talkToNextion(void) {
     if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"RX:   %s",TXbuffer);
     basicFunctions();
@@ -478,7 +477,6 @@ int open_nextion_serial_port(char* devicename, long BAUD)
 }
 
 
-
 int ptym_open(char *pts_name, char *pts_name_s , int pts_namesz)
 {
     char *ptr;
@@ -540,7 +538,7 @@ static void terminate(int sig)
     sendCommand("page 0");
     sendCommand("cls 0");
     sendCommand("dim=50");
-    sendCommand("t0.txt=\"Nextionhelper\"");
+    sendCommand("t0.txt=\"NextionDriver\"");
     sendCommand("t2.txt=\"Stopped\"");
     usleep(5000);
 
@@ -572,7 +570,7 @@ int main(int argc, char *argv[])
     signal(SIGCHLD, SIG_IGN);
     // terminate on these signals
     signal(SIGINT, terminate);            // 'Ctrl-C'
-    signal(SIGQUIT, terminate);            // 'Ctrl-\'
+    signal(SIGQUIT, terminate);           // 'Ctrl-\'
     signal(SIGHUP, terminate);
     signal(SIGTERM, terminate);
     signal(SIGUSR1, terminate);
@@ -584,7 +582,6 @@ int main(int argc, char *argv[])
     strcpy(groupsFile,GROUPSFILE);
     strcpy(usersFile,USERSFILE);
 
-
     datafiledir[0]=0;
 
     while ((t = getopt(argc, argv, "dVvm:n:c:f:hi")) != -1) {
@@ -594,7 +591,7 @@ int main(int argc, char *argv[])
                 break;
             case 'V':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
-                printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n\n");
+                printf("Copyright (C) 2017...2019 ON7LDS. All rights reserved.\n\n");
                 return 0;
                 break;
             case 'v':
@@ -620,7 +617,7 @@ int main(int argc, char *argv[])
             case 'h':
             case ':':
                 printf("\nNextionDriver version %s\n", NextionDriver_VERSION);
-                printf("Copyright (C) 2017,2018 ON7LDS. All rights reserved.\n");
+                printf("Copyright (C) 2017...2019 ON7LDS. All rights reserved.\n");
                 printf("\nUsage: %s -c <MMDVM config file> [-f] [-d] [-h]\n\n", argv[0]);
                 printf("  -c\tspecify the MMDVM config file, which has to be extended with the NetxtionDriver config\n");
                 printf("  -f\tspecify the directory with data files (groups, users)\n");
@@ -642,16 +639,16 @@ int main(int argc, char *argv[])
     } else printf("Starting in console mode...\n");
 
     writelog(2,"NextionDriver version %s", NextionDriver_VERSION);
-    writelog(2,"Copyright (C) 2017,2018 ON7LDS. All rights reserved.");
+    writelog(2,"Copyright (C) 2017...2019 ON7LDS. All rights reserved.");
 
     writelog(2,"Starting with verbose level %d", verbose);
 
-
-    if (proc_find("NextionDriver")>0) {
+    ok=proc_find("NextionDriver");
+    if (ok>0) {
         if (ignore_other) {
-            writelog(2,"Warning: NextionDriver with PID %d already running !",proc_find("NextionDriver"));
+            writelog(2,"Warning: NextionDriver with PID %d already running !",ok);
         } else {
-            writelog(LOG_ERR,"ERROR: NextionDriver with PID %d already running, I'm quitting !",proc_find("NextionDriver"));
+            writelog(LOG_ERR,"ERROR: NextionDriver with PID %d already running, I'm quitting !",ok);
             exit(EXIT_FAILURE);
         }
     }
@@ -725,17 +722,29 @@ int main(int argc, char *argv[])
     sendCommand("page 0");
     sendCommand("cls 0");
     sendCommand("dim=100");
-    sendCommand("t0.txt=\"Nextionhelper\"");
+    sendCommand("t0.txt=\"NextionDriver\"");
     sendCommand("t2.txt=\"Started\"");
     sprintf(TXbuffer,"ussp=%d",sleepWhenInactive);
     sendCommand(TXbuffer);
     sendCommand("thup=1");
 
-    getNetworkInterface(ipaddr);
-    netIsActive[0]=getInternetStatus(check);
-    sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);
-    sendCommand(TXbuffer);
+    start=0;
+    netIsActive[0]=0;
+    if (waitForLan) {
+        while ((start<180) && (netIsActive[0]==0)) {
+            sleep(1);
+            getNetworkInterface(ipaddr);
+            netIsActive[0]=getInternetStatus(check);
+            sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
+            sendCommand(TXbuffer);
+            start++;
+        }
+        sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);
+        sendCommand(TXbuffer);
+    }
+    writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
+    start=0;
     RXtail=0;
     while(1)
     {

@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.07"
+#define NextionDriver_VERSION "1.08"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
@@ -77,7 +77,7 @@ typedef struct userdata
 int gelezen;
 int check;
 unsigned char inhibit;
-int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus;
+int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
 long sleepTimeOut;
 char ipaddr[100];
 #ifdef XTRA
