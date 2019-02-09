@@ -589,12 +589,17 @@ void print_users() {
 }
 
 
-void insert_user(user_t table[], int nr, void *new_data1, void *new_data2, void *new_data3, void *new_data4, void *new_data5)
+int insert_user(user_t table[], int nr, void *new_data1, void *new_data2, void *new_data3, void *new_data4, void *new_data5)
 {
     char *m;
 
+    if (nmbr_users>=MAXUSERS) {
+        writelog(LOG_ERR,"  Maximum of %d users reached. Not adding more users.",nmbr_users);
+        return 0;
+    }
+
     m = malloc(1024);
-    if (m==NULL) return;
+    if (m==NULL) return 0;
     free(m);
 
     table[nmbr_users].nr = nr;
@@ -620,12 +625,24 @@ void insert_user(user_t table[], int nr, void *new_data1, void *new_data2, void 
     table[nmbr_users].data5 = malloc(size);
     memcpy(table[nmbr_users].data5,new_data5,size);
     nmbr_users++;
+
+    return 1;
 }
 
 
 
-void insert_group(group_t table[], int nr, void *new_data){
+int insert_group(group_t table[], int nr, void *new_data){
+    char *m;
 
+    if (nmbr_groups>=MAXGROUPS) {
+        writelog(LOG_ERR,"  Maximum of %d groups reached. Not adding more groups.",nmbr_groups);
+        return 0;
+    }
+
+	m = malloc(256);
+    if (m==NULL) return 0;
+    free(m);
+	
     table[nmbr_groups].nr = nr;
 
     int size;
@@ -633,6 +650,8 @@ void insert_group(group_t table[], int nr, void *new_data){
     table[nmbr_groups].name = malloc(size);
     memcpy(table[nmbr_groups].name,new_data,size);
     nmbr_groups++;
+	
+	return 1;
 }
 
 void readGroups(void){
@@ -669,7 +688,7 @@ void readGroups(void){
         if (key == NULL) continue;
 
 //        printf("Pushing %d %s \n",nr, key);fflush(NULL);
-        insert_group(groups, nr, key);
+        if (insert_group(groups, nr, key)==0) break;
     }
     fclose(fp);
     writelog(LOG_NOTICE,"  Read %d groups.",nmbr_groups);
@@ -714,10 +733,10 @@ void readUserDB(void){
             key[i++]=next;
             next = strtok(NULL,",");
         }
-        if (strlen(key[1])>1) {
+        if ((strlen(key[1])>1)&&(i>=6)) {
 //            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
 //            usleep(100000);
-            insert_user(users, nr, key[1], key[2], key[3], key[4], key[6]);
+            if (insert_user(users, nr, key[1], key[2], key[3], key[4], key[6])==0) break;
         }
     }
     fclose(fp);
