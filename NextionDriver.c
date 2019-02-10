@@ -253,7 +253,7 @@ void handleButton(int received) {
             writelog(LOG_DEBUG,text);
         }
         if (RXbuffer[0]==42) {
-            writelog(LOG_DEBUG,"Received command 0x%02X",RXbuffer[1]);
+            writelog(LOG_NOTICE,"Received command 0x%02X",RXbuffer[1]);
             if (RXbuffer[1]>0xEF) {
                 if ((RXbuffer[1]==0xFE)&&(received==3)){
                     sendScreenData(RXbuffer[2]);
@@ -273,7 +273,7 @@ void handleButton(int received) {
                     dumpLHlist();
                 } else {
                 if ((RXbuffer[1]<0xF2)&&(received>2)&&(received<200)) {
-                        writelog(LOG_DEBUG," Execute command \"%s\"",&RXbuffer[2]);
+                        writelog(LOG_NOTICE," Execute command \"%s\"",&RXbuffer[2]);
                         sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
                         sendCommand(TXbuffer);
                         if (RXbuffer[1]==0xF1) {
@@ -281,7 +281,7 @@ void handleButton(int received) {
                             char buf[256];
                             if (fgets(buf, sizeof(buf), ls) != 0) {
                                 strtok(buf, "\n");
-                                writelog(LOG_DEBUG," Command response \"%s\"",buf);
+                                writelog(LOG_NOTICE," Command response \"%s\"",buf);
                                 sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
                                 sendCommand(TXbuffer);
                             }
@@ -293,7 +293,7 @@ void handleButton(int received) {
             } else {
                 code=RXbuffer[1];
                 memmove(&RXbuffer,&RXbuffer[2],512);
-                writelog(LOG_DEBUG," Command parameter \"%s\"",RXbuffer);
+                writelog(LOG_NOTICE," Command parameter \"%s\"",RXbuffer);
                 processButtons(code);
             }
         }
