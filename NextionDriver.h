@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.09"
+#define NextionDriver_VERSION "1.10"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
@@ -74,6 +74,11 @@ typedef struct userdata
     char *data5;
 } user_t;
 
+typedef struct user_idx_data{
+	char *call;
+	int nr;
+} user_call_idx_t;
+
 int gelezen;
 int check;
 unsigned char inhibit;
@@ -86,6 +91,7 @@ char location[200];
 #endif
 group_t groups[MAXGROUPS];
 user_t users[MAXUSERS];
+user_call_idx_t usersCALL_IDX[MAXUSERS];
 int nmbr_groups, nmbr_users;
 
 int fd1,fd2;

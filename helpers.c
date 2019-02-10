@@ -530,7 +530,7 @@ int search_group(int nr, group_t a[], int m, int n)
 }
 
 
-int search_userID(int nr, user_t a[], int m, int n)
+int search_user_index_for_ID(int nr, user_t a[], int m, int n)
 {
     writelog(LOG_DEBUG,"--- User search for ID %d (%d [%d] - %d [%d] )",nr,m,a[m].nr,n,a[n].nr);
 //    usleep(200000);
@@ -544,33 +544,41 @@ int search_userID(int nr, user_t a[], int m, int n)
     int middle=(m+n)/2;
     if(a[middle].nr==nr)  return middle;
     else
-    if(nr > a[middle].nr) return search_userID(nr, a, middle, n);
+    if(nr > a[middle].nr) return search_user_index_for_ID(nr, a, middle, n);
     else
-    if(nr < a[middle].nr) return search_userID(nr, a, m, middle);
+    if(nr < a[middle].nr) return search_user_index_for_ID(nr, a, m, middle);
 
     return -1;
 }
 
 
-int search_userCALL(char* call, user_t a[], int m, int n)
+int search_user_array_for_CALL(char* call, user_call_idx_t a[], int m, int n)
 {
-    writelog(LOG_DEBUG,"--- User search for call %s (%d [%s] - %d [%s] )",call,m,a[m].data1,n,a[n].data1);
-//    usleep(200000);
+    writelog(LOG_DEBUG,"--- User index search for call %s (%d [%s] - %d [%s] )",call,m,a[m].call,n,a[n].call);
+
     if (strlen(call)==0) return -1;
     if (m>n) return -1;
 
     if((n-m)<2) {
-        if(strcmp(a[n].data1,call)==0) { return n; } else  return -1;
+        if(strcmp(a[n].call,call)==0) { return n; } else  return -1;
     }
 
     int middle=(m+n)/2;
-    if(strcmp(a[middle].data1,call)==0)  return middle;
+    if(strcmp(a[middle].call,call)==0)  return middle;
     else
-    if(strcmp(a[middle].data1,call)<0) return search_userCALL(call, a, middle, n);
+    if(strcmp(a[middle].call,call)<0) return search_user_array_for_CALL(call, a, middle, n);
     else
-    if(strcmp(a[middle].data1,call)>0) return search_userCALL(call, a, m, middle);
+    if(strcmp(a[middle].call,call)>0) return search_user_array_for_CALL(call, a, m, middle);
 
     return -1;
+}
+
+
+int search_user_index_for_CALL(char* call, user_call_idx_t a[], int m, int n){
+	int i;
+	
+	i=search_user_array_for_CALL(call, a,  m,  n);
+	if (i>0) return usersCALL_IDX[i].nr; else return 0;
 }
 
 
@@ -586,6 +594,41 @@ void print_users() {
 
     for (i=0; i<nmbr_users;i++)
         printf("User %5d: %d = [%s][%s][%s][%s][%s]\n", i, users[i].nr, users[i].data1, users[i].data2, users[i].data3, users[i].data4, users[i].data5);
+}
+
+void print_call_id() {
+    int i;
+
+    for (i=0; i<nmbr_users;i++)
+        printf("User %15s: %d\n", usersCALL_IDX[i].call, usersCALL_IDX[i].nr);
+}
+
+
+
+
+
+int insert_user_call_idx(user_call_idx_t table[], int index, void *call, int nr){
+    char *m;
+
+    if (index>=MAXUSERS) {
+        writelog(LOG_ERR,"  Maximum of %d users reached. Not adding more users.",index);
+        return 0;
+    }
+
+	m = malloc(256);
+    if (m==NULL) return 0;
+    free(m);
+	
+    table[index].nr = nr;
+
+    int size;
+    size=strlen(call)+1;
+    table[index].call = malloc(size);
+    memcpy(table[index].call,call,size);
+	
+//	writelog(LOG_DEBUG,"Inserted call [%s] = index [%d]",table[index].call,table[index].nr);
+	
+	return 1;
 }
 
 
@@ -624,6 +667,9 @@ int insert_user(user_t table[], int nr, void *new_data1, void *new_data2, void *
     size=strlen(new_data5)+1;
     table[nmbr_users].data5 = malloc(size);
     memcpy(table[nmbr_users].data5,new_data5,size);
+
+//printf("User index %5d: %d = [%s][%s][%s][%s][%s]\n", nmbr_users, table[nmbr_users].nr, table[nmbr_users].data1, table[nmbr_users].data2, table[nmbr_users].data3, table[nmbr_users].data4, table[nmbr_users].data5);
+	
     nmbr_users++;
 
     return 1;
@@ -653,6 +699,18 @@ int insert_group(group_t table[], int nr, void *new_data){
 	
 	return 1;
 }
+
+
+
+
+int cmpstringp( const void* a, const void* b)
+{
+     int int_a = * ( (int*) a );
+     int int_b = * ( (int*) b );
+
+	 return strcmp(users[int_a].data1,users[int_b].data1);
+}
+
 
 void readGroups(void){
 #define BUFFER_SZ 100
@@ -733,14 +791,23 @@ void readUserDB(void){
             key[i++]=next;
             next = strtok(NULL,",");
         }
-        if ((strlen(key[1])>1)&&(i>=6)) {
+        if ((strlen(key[1])>1)&&(i>=2)) {
 //            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
 //            usleep(100000);
             if (insert_user(users, nr, key[1], key[2], key[3], key[4], key[6])==0) break;
         }
+//		else printf("Not inserting [%s]\n",key[1]);
+		
     }
     fclose(fp);
     writelog(LOG_NOTICE,"  Read %d users.",nmbr_users);
+	
+	int userindexes[MAXUSERS];
+	for (i=0;i<nmbr_users;i++) userindexes[i]=i;
+	qsort( userindexes, nmbr_users, sizeof(userindexes[0]), cmpstringp );
+	for (i=0;i<nmbr_users;i++){ insert_user_call_idx(usersCALL_IDX,i,users[userindexes[i]].data1, userindexes[i]); }
+
+    writelog(LOG_NOTICE,"  Sorted CALL table.");
 }
 
 

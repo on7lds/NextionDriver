@@ -52,14 +52,15 @@ void dumpLHlist(void);
 void readGroups(void);
 void readUserDB(void);
 void print_users(void);
+void print_call_id(void);
 int getDiskFree(int log);
 int openTalkingSocket(void); 
 int openListeningSocket(void); 
 int sendTransparentData(int display, char* msg);
 
 int search_group(int nr, group_t a[], int m, int n);
-int search_userID(int nr, user_t a[], int m, int n);
-int search_userCALL(char* call, user_t a[], int m, int n);
+int search_user_index_for_ID(int id, user_t a[], int m, int n);
+int search_user_index_for_CALL(char* call, user_call_idx_t a[], int m, int n);
 
 
 #endif

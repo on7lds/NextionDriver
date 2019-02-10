@@ -259,8 +259,9 @@ void basicFunctions() {
             sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
         } else if (TGindex<0) {
             //is it maybe a user private call ?
-            TGindex=search_userID(nr,users,0,nmbr_users-1);
-            if (TGindex>0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
+            TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+			writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+            if (TGindex>=0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
         } else {
             sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
         }
@@ -277,13 +278,15 @@ void basicFunctions() {
         user=0;
         nr=atoi(&TXbuffer[12]);
         if (nr>0) {
-            user=search_userID(nr,users,0,nmbr_users-1);
+            user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+			writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
         } else if (strstr(TXbuffer,"Listening")==NULL) {
             TXbuffer[strlen(TXbuffer)-1]=' ';
             char* l=strchr(&TXbuffer[12], ' ');
             if (l!=NULL) l[0]=0;
             writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
-            user=search_userCALL(&TXbuffer[12],users,0,nmbr_users-1);
+            user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
+			writelog(LOG_DEBUG,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
         }
 
         if (user>=0) {
