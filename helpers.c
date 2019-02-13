@@ -868,6 +868,7 @@ int openTalkingSocket(void) {
     hints.ai_protocol = 0;
     hints.ai_flags    = AI_ADDRCONFIG;
 
+	writelog(LOG_DEBUG,"Try to open socket to %s:%s", hostname,remotePort);
     int err=getaddrinfo(hostname,remotePort,&hints,&display_addr);
     if (err!=0) {
         writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)",err);
@@ -877,7 +878,7 @@ int openTalkingSocket(void) {
 
     display_TXsock=socket(display_addr->ai_family,display_addr->ai_socktype,display_addr->ai_protocol);
     if (display_TXsock==-1) {
-        writelog(LOG_ERR,"Transparent Connection: %s\n",strerror(errno));
+        writelog(LOG_ERR,"Transparent Connection: %s",strerror(errno));
         return 0;
     }
 
@@ -914,6 +915,8 @@ int openListeningSocket(void) {
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_in *addr;
 
+	writelog(LOG_DEBUG,"Try to open listening socket %s", localPort);
+	
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
     hints.ai_socktype = SOCK_DGRAM;

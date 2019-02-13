@@ -109,6 +109,11 @@ int checkDisplay(char *model) {
     int flashsize=0;
     r = read (fd2,&buffer,200);
     d=0;
+	
+	if (strcmp(nextionPort,"modem")==0) {
+		writelog(LOG_NOTICE,"I can not (yet) check or update modem connected displays");
+		return -1;
+	}
 
     strcpy(model,"");
     for (i=0; i<3; i++) {
@@ -172,6 +177,8 @@ void updateDisplay(void) {
     strcat(model,".tft");
     if (flashsize==0) 
         { writelog(LOG_ERR,"Could not communicate with display. Cannot update ..."); return; }
+    if (flashsize<0) 
+        { writelog(LOG_ERR,"Cannot update modem connected displays ..."); return; }
     //search model file
     ok=0;
     DIR *dr = opendir(datafiledir);
@@ -707,7 +714,9 @@ int main(int argc, char *argv[])
     char buffer[SERBUFSIZE*2];
     char* s;
     int start=0;
-
+	
+	ok=transparentIsEnabled;
+	if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
     if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
     writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
@@ -735,7 +744,10 @@ int main(int argc, char *argv[])
             sleep(1);
             getNetworkInterface(ipaddr);
             netIsActive[0]=getInternetStatus(check);
-            sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
+			if (netIsActive[0])
+				sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
+			else
+				sprintf(TXbuffer,"t3.txt=\"%d Waiting for network ...\"", start);
             sendCommand(TXbuffer);
             start++;
         }
@@ -744,6 +756,16 @@ int main(int argc, char *argv[])
     }
     writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
+	//if needed, try again
+	if ((ok=1) && (transparentIsEnabled==0)) {
+		writelog(2,"Retry to open sockets");
+		transparentIsEnabled=1;
+		if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
+		if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
+		if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
+		writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+	}	
+	
     start=0;
     RXtail=0;
     while(1)
