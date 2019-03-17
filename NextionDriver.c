@@ -103,17 +103,18 @@ void sendCommand(char *cmd){
 
 
 int checkDisplay(char *model) {
-    char buffer[200],info[8][30];
+    char buffer[200];
     char* p;
     int i,r,d;
     int flashsize=0;
     r = read (fd2,&buffer,200);
     d=0;
-	
-	if (strcmp(nextionPort,"modem")==0) {
-		writelog(LOG_NOTICE,"I can not (yet) check or update modem connected displays");
-		return -1;
-	}
+
+    if (strcmp(nextionPort,"modem")==0) {
+        writelog(LOG_NOTICE,"I can not (yet) check or update modem connected displays");
+        return -1;
+    }
+    for (i=0;i<8;i++)DisplayInfo[i][0]=0;
 
     strcpy(model,"");
     for (i=0; i<3; i++) {
@@ -129,24 +130,24 @@ int checkDisplay(char *model) {
             p=strstr(buffer,"comok");
             r=0;
             if (p!=NULL) {
-                strcpy(info[r],p);
+                strcpy(DisplayInfo[r],p);
                 p = strtok (buffer,",");
                 while (p != NULL) {
                     if (r<8) r++;
-                    strcpy(info[r],p);
+                    strcpy(DisplayInfo[r],p);
                     //printf ("%d: %s\n",r,p);
                     p = strtok (NULL, ",");
                 }
                 if (r==7) {
                     writelog(2,"Found Nextion display");
-                    writelog(2," %s display model %s",info[1][6]=='1' ? "Touch" : "No touch",info[3]);
-                    writelog(2," FW %s, MCU %s",info[4],info[5]);
-                    writelog(2," Serial %s",info[6]);
-                    writelog(2," Flash size %s",info[7]);
+                    writelog(2," %s display model %s",DisplayInfo[1][6]=='1' ? "Touch" : "No touch",DisplayInfo[3]);
+                    writelog(2," FW %s, MCU %s",DisplayInfo[4],DisplayInfo[5]);
+                    writelog(2," Serial %s",DisplayInfo[6]);
+                    writelog(2," Flash size %s",DisplayInfo[7]);
 
-                    flashsize=atoi(info[7]);
-                    p=strstr(info[3],"_"); if (p!=NULL) p[0]=0;
-                    strcpy(model,info[3]);
+                    flashsize=atoi(DisplayInfo[7]);
+                    p=strstr(DisplayInfo[3],"_"); if (p!=NULL) p[0]=0;
+                    strcpy(model,DisplayInfo[3]);
 
                     break;
                 }
@@ -249,6 +250,9 @@ void updateDisplay(void) {
 
 void handleButton(int received) {
     char code, text[150];
+    int response;
+
+    response=0;
     if (received>1) {
         {
             sprintf(text,"RX: %d (",received);
@@ -269,9 +273,23 @@ void handleButton(int received) {
                     LHlist(RXbuffer[2],RXbuffer[3]);
                 } else
                 if ((RXbuffer[1]==0xFC)&&(received==3)){
-                    inhibit=RXbuffer[2];
-                    if (inhibit==0xFE) inhibit=0;
-                    writelog(LOG_DEBUG,"Inhibit=%d",inhibit);
+                    if (RXbuffer[2]==2) {
+                        if (DisplayInfo[3][0]==0) {
+                            sprintf(text, "msg1.txt=\"Model Unknown\"");
+                            sendCommand(text);
+                            sprintf(text, "msg2.txt=\"\"");
+                            sendCommand(text);
+                        } else {
+                            sprintf(text, "msg1.txt=\"%s\"",DisplayInfo[3]);
+                            sendCommand(text);
+                            sprintf(text, "msg2.txt=\"%s\"",DisplayInfo[6]);
+                            sendCommand(text);
+                        }
+                    } else {
+                        inhibit=RXbuffer[2];
+                        if (inhibit==0xFE) inhibit=0;
+                        writelog(LOG_DEBUG,"Inhibit=%d",inhibit);
+                    }
                 } else
                 if (RXbuffer[1]==0xFB){
                     updateDisplay();
@@ -296,7 +314,9 @@ void handleButton(int received) {
                         } else {
                             system(&RXbuffer[2]);
                         }
-                }}
+                        response=RXbuffer[1];
+                    }
+                }
             } else {
                 code=RXbuffer[1];
                 memmove(&RXbuffer,&RXbuffer[2],512);
@@ -304,6 +324,12 @@ void handleButton(int received) {
                 processButtons(code);
             }
         }
+        if (response>0) {
+            sprintf(text, "MMDVM.status.val=24");
+            sendCommand(text);
+            sendCommand("click S0,1");
+        };
+
     }
 }
 
@@ -546,6 +572,8 @@ static void terminate(int sig)
     sendCommand("cls 0");
     sendCommand("dim=50");
     sendCommand("t0.txt=\"NextionDriver\"");
+    sprintf(TXbuffer,"t1.txt=\"%s\"",NextionDriver_VERSION);
+    sendCommand(TXbuffer);
     sendCommand("t2.txt=\"Stopped\"");
     usleep(5000);
 
@@ -590,6 +618,7 @@ int main(int argc, char *argv[])
     strcpy(usersFile,USERSFILE);
 
     datafiledir[0]=0;
+    for (t=1;t<8;t++)DisplayInfo[t][0]=0;
 
     while ((t = getopt(argc, argv, "dVvm:n:c:f:hi")) != -1) {
         switch (t) {
@@ -674,7 +703,7 @@ int main(int argc, char *argv[])
 
     readGroups();
     readUserDB();
-	
+
     getDiskFree(TRUE);
 
     writelog(2,"Started with screenLayout %d", screenLayout);
@@ -714,9 +743,9 @@ int main(int argc, char *argv[])
     char buffer[SERBUFSIZE*2];
     char* s;
     int start=0;
-	
-	ok=transparentIsEnabled;
-	if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
+
+    ok=transparentIsEnabled;
+    if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
     if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
     writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
@@ -732,6 +761,8 @@ int main(int argc, char *argv[])
     sendCommand("cls 0");
     sendCommand("dim=100");
     sendCommand("t0.txt=\"NextionDriver\"");
+    sprintf(TXbuffer,"t1.txt=\"%s\"",NextionDriver_VERSION);
+    sendCommand(TXbuffer);
     sendCommand("t2.txt=\"Started\"");
     sprintf(TXbuffer,"ussp=%d",sleepWhenInactive);
     sendCommand(TXbuffer);
@@ -744,10 +775,10 @@ int main(int argc, char *argv[])
             sleep(1);
             getNetworkInterface(ipaddr);
             netIsActive[0]=getInternetStatus(check);
-			if (netIsActive[0])
-				sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
-			else
-				sprintf(TXbuffer,"t3.txt=\"%d Waiting for network ...\"", start);
+            if (netIsActive[0])
+                sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
+            else
+                sprintf(TXbuffer,"t3.txt=\"%d Waiting for network ...\"", start);
             sendCommand(TXbuffer);
             start++;
         }
@@ -756,16 +787,16 @@ int main(int argc, char *argv[])
     }
     writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
-	//if needed, try again
-	if ((ok=1) && (transparentIsEnabled==0)) {
-		writelog(2,"Retry to open sockets");
-		transparentIsEnabled=1;
-		if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-		if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-		if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-		writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
-	}	
-	
+    //if needed, try again
+    if ((ok=1) && (transparentIsEnabled==0)) {
+        writelog(2,"Retry to open sockets");
+        transparentIsEnabled=1;
+        if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
+        if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
+        if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
+        writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    }
+
     start=0;
     RXtail=0;
     while(1)

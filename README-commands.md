@@ -20,6 +20,10 @@ is sent to the display variable 'msg'
 There is an example HMI file included.
 Press on the MMDVM logo on the main screen to go to the 'system' page
   
+After executing the linux command, status.val=24 is sent and S0.click 
+is triggered. This allows the display to process the command result, if 
+necessary.
+  
 ##### Refresh page
 ```
    2A FE (number) FF FF FF
@@ -40,7 +44,7 @@ For now : page __has to be 2__ and number <20
 The fiels will be sent and the fieldnames are prepended with 'LH(nr)'  
 So: LH0t0 LH0t1 LH0t2 ... LH1t0 LH1t1 LH1t2 ... LH2t0 LH2t1 LH2t2 ...
   
-##### Stop sending data to display
+##### Display Control
 ```
    2A FC (number) FF FF FF
 ```
@@ -50,6 +54,9 @@ and then all data from MMDVMHost will be dropped.
 This can be practical when changing the Nextion page to your settings page. 
 Then no page changes or field data from MMDVMHost will be sent to the display.
 When inhibit is reset (0) all data from then on will be processed.
+
+When number=3, the display model and serial number are sent in 'msg1' and 
+'msg2' respectively.
 
 
 ##### Update Display

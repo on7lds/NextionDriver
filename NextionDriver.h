@@ -99,6 +99,8 @@ int display_TXsock;
 int display_RXsock;
 struct addrinfo* display_addr;
 
+char DisplayInfo[8][30];
+
 int become_daemon,ignore_other;
 
 int modeIsEnabled[20];

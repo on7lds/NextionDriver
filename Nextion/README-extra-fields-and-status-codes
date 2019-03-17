@@ -15,6 +15,10 @@ Making something nice of it is your job ;-)
 Fields (and their numbers) on the pages, used by NextionDriver
 --------------------------------------------------------------
 
+After executing a linux command, (2A F0 or 2A F1) status code 24 
+will be sent.
+
+
 MMDVM
 t20 : CPU temp
 t21 : CPU freq
@@ -38,3 +42,4 @@ t16: user data field 4
 t17: user data field 5
 
 status code 78 will be sent after sending the user data
+
