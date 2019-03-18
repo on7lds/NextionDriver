@@ -55,7 +55,7 @@ This can be practical when changing the Nextion page to your settings page.
 Then no page changes or field data from MMDVMHost will be sent to the display.
 When inhibit is reset (0) all data from then on will be processed.
 
-When number=3, the display model and serial number are sent in 'msg1' and 
+When number=2, the display model and serial number are sent in 'msg1' and 
 'msg2' respectively.
 
 
