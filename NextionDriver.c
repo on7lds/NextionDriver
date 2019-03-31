@@ -290,6 +290,7 @@ void handleButton(int received) {
                         if (inhibit==0xFE) inhibit=0;
                         writelog(LOG_DEBUG,"Inhibit=%d",inhibit);
                     }
+                    response=RXbuffer[1];
                 } else
                 if (RXbuffer[1]==0xFB){
                     updateDisplay();

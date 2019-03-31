@@ -58,6 +58,9 @@ When inhibit is reset (0) all data from then on will be processed.
 When number=2, the display model and serial number are sent in 'msg1' and 
 'msg2' respectively.
 
+The S0 click event will be activated after executing the command, with
+status value 24.
+
 
 ##### Update Display
 ```
