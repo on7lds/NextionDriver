@@ -37,7 +37,7 @@
 
 void getNetworkInterface(char* info) {
     const unsigned int IFLISTSIZ = 25U;
-    int n;
+    //unsigned int n;
 
     FILE* fp = fopen("/proc/net/route" , "r");
     if (fp == NULL) {
@@ -68,7 +68,7 @@ void getNetworkInterface(char* info) {
     }
 
     char interfacelist[IFLISTSIZ][50+INET6_ADDRSTRLEN];
-    for (n = 0U; n < IFLISTSIZ; n++) {
+    for (unsigned int n = 0U; n < IFLISTSIZ; n++) {
         interfacelist[n][0] = 0;
     }
 
@@ -107,7 +107,7 @@ void getNetworkInterface(char* info) {
 
     writelog(LOG_INFO," Default interface is : %s" , dflt);
 
-    for (n = 0U; n < ifnr; n++) {
+    for (unsigned int n = 0U; n < ifnr; n++) {
         char* p = strchr(interfacelist[n], '%');
         if (p != NULL)
           *p = 0;

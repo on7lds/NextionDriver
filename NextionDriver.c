@@ -48,6 +48,8 @@ int RXtail=0;
 char RXbuffertemp[1024];
 int sockRXtail=0;
 char sockRXbuffertemp[1024];
+char result[32];
+FILE *fp1;
 
 
 int open_nextion_serial_port(char* devicename, long BAUD);
@@ -88,7 +90,7 @@ void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
         write(fd2,cmd,strlen(cmd));
         write(fd2,"\xFF\xFF\xFF",3);
-        writelog(LOG_DEBUG," TX:  %s",cmd);
+        writelog(LOG_DEBUG,"  TX: %s",cmd);
         if (screenLayout==4)
             usleep(1042*(strlen(cmd)+1));
         else
@@ -443,7 +445,7 @@ void checkListeningSocket(void) {
 
 
 void talkToNextion(void) {
-    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"RX:   %s",TXbuffer);
+    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"  RX: %s",TXbuffer);
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
@@ -746,6 +748,28 @@ int main(int argc, char *argv[])
     int start=0;
 
     ok=transparentIsEnabled;
+
+    if (transparentIsEnabled==1)
+      {
+      do 
+        {
+        // Open the command for reading.
+        fp1 = popen("systemctl is-active mmdvmhost.service", "r");
+        if (fp1 == NULL)
+          {
+          writelog(LOG_NOTICE,"Failed to run command\n");
+          }
+        while (fgets(result, sizeof(result)-1, fp1)!= NULL)
+          {
+          writelog(LOG_NOTICE,"mmdvmhost.service is %s", result);
+          }
+        sleep(1);
+        writelog(LOG_NOTICE,"waiting for 1 second");
+        pclose(fp1);
+        }  while (strcmp(result,"active\n") != 0);
+        writelog(LOG_NOTICE,"continuing now that mmdvmhost.service is %s", result);
+      }
+
     if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
     if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
     if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
@@ -777,7 +801,7 @@ int main(int argc, char *argv[])
             getNetworkInterface(ipaddr);
             netIsActive[0]=getInternetStatus(check);
             if (netIsActive[0])
-                sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
+                sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);
             else
                 sprintf(TXbuffer,"t3.txt=\"%d Waiting for network ...\"", start);
             sendCommand(TXbuffer);
@@ -788,15 +812,16 @@ int main(int argc, char *argv[])
     }
     writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
+    //this should no longer be needed since we now wait for the port on mmdvmhost to be up
     //if needed, try again
-    if ((ok=1) && (transparentIsEnabled==0)) {
-        writelog(2,"Retry to open sockets");
-        transparentIsEnabled=1;
-        if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-        if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-        if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-        writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
-    }
+    //if ((ok=1) && (transparentIsEnabled==0)) {
+    //    writelog(2,"Retry to open sockets");
+    //    transparentIsEnabled=1;
+    //    if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
+    //    if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
+    //    if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
+    //    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    //}
 
     start=0;
     RXtail=0;
