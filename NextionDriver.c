@@ -249,8 +249,9 @@ void updateDisplay(void) {
 
 
 void handleButton(int received) {
-    char code, text[150];
-    int response;
+    char code, text[150], *cmd;
+    int response,resNmbr;
+    FILE *ls;
 
     response=0;
     if (received>1) {
@@ -299,16 +300,26 @@ void handleButton(int received) {
                     dumpLHlist();
                 } else {
                 if ((RXbuffer[1]<0xF2)&&(received>2)&&(received<200)) {
-                        writelog(LOG_NOTICE," Execute command \"%s\"",&RXbuffer[2]);
-                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
+                        cmd=&RXbuffer[2];
+                        resNmbr=RXbuffer[2];
+                        if (resNmbr<32) {
+                            cmd++;
+                            writelog(LOG_DEBUG," Command retunr field will be %d",resNmbr);
+                        }
+                        writelog(LOG_NOTICE," Execute command \"%s\"",cmd);
+                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", cmd);
                         sendCommand(TXbuffer);
                         if (RXbuffer[1]==0xF1) {
-                            FILE *ls = popen(&RXbuffer[2], "r");
+                            ls = popen(cmd, "r");
                             char buf[256];
                             if (fgets(buf, sizeof(buf), ls) != 0) {
                                 strtok(buf, "\n");
                                 writelog(LOG_NOTICE," Command response \"%s\"",buf);
-                                sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                if (resNmbr>=32) {
+                                    sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                } else {
+                                    sprintf(TXbuffer, "result%02d.txt=\"%s\"",resNmbr, buf);
+                                }
                                 sendCommand(TXbuffer);
                             }
                             pclose(ls);
@@ -326,7 +337,7 @@ void handleButton(int received) {
             }
         }
         if (response>0) {
-            sprintf(text, "MMDVM.status.val=24");
+            sprintf(text, "MMDVM.status.val=200");
             sendCommand(text);
             sendCommand("click S0,1");
         };
@@ -469,15 +480,14 @@ void showRXbuffer(int buflen) {
 
 int open_nextion_serial_port(char* devicename, long BAUD)
 {
-    int fd;
+    int fd,errnr;
     struct termios newtio;
 
 
     fd = open(devicename,O_RDWR | O_NOCTTY | O_NONBLOCK);
-
+    errnr=errno;
     if (fd < 0) {
-        perror(devicename);
-        writelog(LOG_ERR,"Serial port %s not found. Exiting.",devicename);
+        writelog(LOG_ERR,"Cannot open %s (%s). Exiting.",devicename,strerror(errnr));
         exit(EXIT_FAILURE);
     }
 
@@ -584,6 +594,18 @@ static void terminate(int sig)
     unlink(nextionDriverLink);
     exit(0);
 }
+
+
+int openTransparentDataPorts(void) {
+    int ok;
+
+    writelog(LOG_NOTICE,"Opening sockets ...");
+    ok=openTalkingSocket();
+    if (ok==1) ok=openListeningSocket();
+    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    return ok;
+}
+
 
 
 int main(int argc, char *argv[])
@@ -743,13 +765,9 @@ int main(int argc, char *argv[])
     #define SERBUFSIZE 1024
     char buffer[SERBUFSIZE*2];
     char* s;
-    int start=0;
+    int start=0, transparentIsOpen=0;
 
-    ok=transparentIsEnabled;
-    if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-    if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-    if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    if (transparentIsEnabled) transparentIsOpen=openTransparentDataPorts();
 
     int flash=0;
     char model[40];
@@ -789,13 +807,14 @@ int main(int argc, char *argv[])
     writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
     //if needed, try again
-    if ((ok=1) && (transparentIsEnabled==0)) {
+    if (transparentIsEnabled && !transparentIsOpen) {
         writelog(2,"Retry to open sockets");
-        transparentIsEnabled=1;
-        if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-        if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-        if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-        writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+        start=0;
+        while ((start<30) && !transparentIsOpen) {
+            transparentIsOpen=openTransparentDataPorts();
+            sleep(5);
+            start+=5;
+        }
     }
 
     start=0;

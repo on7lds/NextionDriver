@@ -93,10 +93,10 @@ void getNetworkInterface(char* info) {
                 continue;
             }
             if (family == AF_INET) {
-                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                sprintf(interfacelist[ifnr], "%s:%s", ifa->ifa_name, host);
                 writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
             } else {
-                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                sprintf(interfacelist[ifnr], "%s:%s", ifa->ifa_name, host);
                 writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
             }
             ifnr++;
@@ -868,7 +868,7 @@ int openTalkingSocket(void) {
     hints.ai_protocol = 0;
     hints.ai_flags    = AI_ADDRCONFIG;
 
-	writelog(LOG_DEBUG,"Try to open socket to %s:%s", hostname,remotePort);
+    writelog(LOG_DEBUG,"Try to open socket to %s:%s", hostname,remotePort);
     int err=getaddrinfo(hostname,remotePort,&hints,&display_addr);
     if (err!=0) {
         writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)",err);
@@ -915,8 +915,8 @@ int openListeningSocket(void) {
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_in *addr;
 
-	writelog(LOG_DEBUG,"Try to open listening socket %s", localPort);
-	
+    writelog(LOG_DEBUG,"Try to open listening socket %s", localPort);
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
     hints.ai_socktype = SOCK_DGRAM;

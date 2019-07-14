@@ -13,6 +13,8 @@ The 'linux command' is executed.
 ##### Execute a linux command: with feedback:
 ```
    2A F1 (linux command) FF FF FF
+or
+   2A F1 (number) (linux command) FF FF FF
 ```
 The 'linux command' is executed and the __FIRST__ line of the result
 is sent to the display variable 'msg'
@@ -23,6 +25,12 @@ Press on the MMDVM logo on the main screen to go to the 'system' page
 After executing the linux command, status.val=24 is sent and S0.click 
 is triggered. This allows the display to process the command result, if 
 necessary.
+  
+If the third byte, (number) is present (with number 1..31), the result
+of the command will not be returned in msg.txt, but in the variable 
+resultXX.txt where XX = the number that was given.
+  
+Example : 2A F1 05 date FF FF FF wil return the date/time in result05.txt
   
 ##### Refresh page
 ```
