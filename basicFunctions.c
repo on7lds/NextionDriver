@@ -244,74 +244,213 @@ void basicFunctions() {
     }
 
 
-    //send TG name if found
-    if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
-        char *TGname;
-        int nr,TGindex;
-        sendCommand(TXbuffer);
-        if ((TXbuffer[8]>='0')&&(TXbuffer[8]<='9'))
-            nr=atoi(&TXbuffer[8]);
-        else
-            nr=atoi(&TXbuffer[10]);
-        TGindex=search_group(nr,groups,0,nmbr_groups-1);
-        if (TGindex>=0) {
-            TGname=groups[TGindex].name;
-            sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
-        } else if (TGindex<0) {
-            //is it maybe a user private call ?
-            TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
-            if (TGindex>=0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
-        } else {
-            sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
+    //send TG name if found (Slot 1)
+    if ((page==2)&&(strstr(TXbuffer,"t1.txt")!=NULL)) {
+//        writelog(LOG_DEBUG,"page is %u",page);    //KE7FNS extra debug info
+//        writelog(LOG_DEBUG,"TXbuffer is %s",TXbuffer);
+//        writelog(LOG_DEBUG,"strstr(TXbuffer, \"t1.txt\"  is [%s]",strstr(TXbuffer,"t1.txt"));
+
+        if (strcmp(TXbuffer,"t1.txt=\"\"")==0)   // KE7FNS Don't bother searching when string is t1.txt=""
+        {
+
         }
-        sendCommand(TXbuffer);
+        else
+        {
+
+          char *TGname;
+          int nr,TGindex;
+          sendCommand(TXbuffer);
+
+          if ((TXbuffer[8]>='0')&&(TXbuffer[8]<='9'))
+              nr=atoi(&TXbuffer[8]);
+          else
+              nr=atoi(&TXbuffer[10]);
+          TGindex=search_group(nr,groups,0,nmbr_groups-1);
+          if (TGindex>=0) {
+              TGname=groups[TGindex].name;
+              sprintf(TXbuffer,"t9.txt=\"%s\"",TGname);
+            } else if (TGindex<0) {
+              //is it maybe a user private call ?
+              TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+              writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+              if (TGindex>=0) sprintf(TXbuffer,"t9.txt=\"Private %s\"",users[TGindex].data1);
+            } else {
+              sprintf(TXbuffer,"t9.txt=\"TG%d name not found\"",nr);
+            }
+          sendCommand(TXbuffer);
+        }
+    }
+    //send TG name if found (Slot 2)
+    if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
+//        writelog(LOG_DEBUG,"page is %u",page);    //KE7FNS extra debug info
+//        writelog(LOG_DEBUG,"TXbuffer is %s",TXbuffer);
+//        writelog(LOG_DEBUG,"strstr(TXbuffer, \"t3.txt\"  is [%s]",strstr(TXbuffer,"t3.txt"));
+
+        if (strcmp(TXbuffer,"t3.txt=\"\"")==0)   // KE7FNS Don't bother searching when string is t3.txt=""
+        {
+
+        }
+        else
+        {
+
+          char *TGname;
+          int nr,TGindex;
+          sendCommand(TXbuffer);
+
+          if ((TXbuffer[8]>='0')&&(TXbuffer[8]<='9'))
+              nr=atoi(&TXbuffer[8]);
+          else
+              nr=atoi(&TXbuffer[10]);
+          TGindex=search_group(nr,groups,0,nmbr_groups-1);
+          if (TGindex>=0) {
+              TGname=groups[TGindex].name;
+              sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
+            } else if (TGindex<0) {
+              //is it maybe a user private call ?
+              TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+              writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+              if (TGindex>=0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
+            } else {
+              sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
+            }
+          sendCommand(TXbuffer);
+        }
     }
 
 
-    //send user data if found
-    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)) {
-        int nr,user;
+    //send user data if found (Slot 1)
+    if ((page==2)&&(strstr(TXbuffer,"t0.txt")!=NULL)) {
+//        writelog(LOG_DEBUG,"page is %u",page);      //KE7FNS extra debug info
+//        writelog(LOG_DEBUG,"TXbuffer is %s",TXbuffer);
+//        writelog(LOG_DEBUG,"287 strstr(TXbuffer, \"t0.txt\"  is [%s]",strstr(TXbuffer,"t0.txt"));
 
-        sendCommand(TXbuffer);
 
-        user=0;
-        nr=atoi(&TXbuffer[12]);
-        if (nr>0) {
-            user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
-        } else if (strstr(TXbuffer,"Listening")==NULL) {
+        if ((strcmp(TXbuffer,"t0.txt=\"\"")==0) || !(strstr(TXbuffer,"Listening")==NULL))   // KE7FNS Don't bother searching when string is t0.txt=""
+        {
+
+        }
+        else
+        {
+
+          int nr,user;
+
+          sendCommand(TXbuffer);
+
+          user=0;
+          nr=atoi(&TXbuffer[12]);
+          writelog(LOG_DEBUG,"nr is %u",nr);
+          if (nr>=1023001) {  //  KE7FNS  Theres no reason to search for a DMR ID that is less than the lowest possibe DMR ID.  This fixes issues where callsigns begining with 2E0 are mistaken for DMR ID's
+              user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+              writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
+          } else if (strstr(TXbuffer,"Listening")==NULL) {
+//            writelog(LOG_DEBUG,"308 TXbuffer, is [%s]",TXbuffer);      //KE7FNS extra debug info
             TXbuffer[strlen(TXbuffer)-1]=' ';
+//            writelog(LOG_DEBUG,"310 TXbuffer is now [%s]",TXbuffer);      //KE7FNS extra debug info
             char* l=strchr(&TXbuffer[12], ' ');
+//            writelog(LOG_DEBUG,"312 l is %s",l);      //KE7FNS extra debug info
             if (l!=NULL) l[0]=0;
             writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
             writelog(LOG_DEBUG,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
-        }
+//            writelog(LOG_DEBUG,"data 1 = %s",users[user].data1);      //KE7FNS extra debug info
+//            writelog(LOG_DEBUG,"data 2 = %s",users[user].data2);
+//            writelog(LOG_DEBUG,"data 3 = %s",users[user].data3);
+//            writelog(LOG_DEBUG,"data 4 = %s",users[user].data4);
+//            writelog(LOG_DEBUG,"data 5 = %s",users[user].data5);
+          }
+//          writelog(LOG_DEBUG,"User is [%u]",user);      //KE7FNS extra debug info
 
-        if (user>=0) {
-            sprintf(TXbuffer,"t13.txt=\"%s\"",users[user].data1);
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t14.txt=\"%s\"",users[user].data2);
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t15.txt=\"%s\"",users[user].data3);
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t16.txt=\"%s\"",users[user].data4);
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t17.txt=\"%s\"",users[user].data5);
-            sendCommand(TXbuffer);
+          if (user>=0) {
+              sprintf(TXbuffer,"t18.txt=\"%s\"",users[user].data1);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t19.txt=\"%s\"",users[user].data2);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t20.txt=\"%s\"",users[user].data3);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t21.txt=\"%s\"",users[user].data4);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t22.txt=\"%s\"",users[user].data5);
+              sendCommand(TXbuffer);
 
-        } else if (nr>0) {
-            sprintf(TXbuffer,"t13.txt=\"DMRID %d\"",nr);
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t14.txt=\"Not found in\"");
-            sendCommand(TXbuffer);
-            sprintf(TXbuffer,"t15.txt=\"%s\"",usersFile);
-            sendCommand(TXbuffer);
+          } else if (nr>=1023001) {  //  KE7FNS  Theres no reason to search for a DMR ID that is less than the lowest possibe DMR ID.
+              sprintf(TXbuffer,"t18.txt=\"DMRID %d\"",nr);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t19.txt=\"Not found in\"");
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t20.txt=\"%s\"",usersFile);
+              sendCommand(TXbuffer);
+          }
+          sprintf(text, "MMDVM.status.val=68");
+          sendCommand(text);
+          sendCommand("click S0,1");
         }
-        sprintf(text, "MMDVM.status.val=78");
-        sendCommand(text);
-        sendCommand("click S0,1");
+    }
+    //send user data if found (Slot 2)
+    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)) {
+//        writelog(LOG_DEBUG,"page is %u",page);      //KE7FNS extra debug info
+//        writelog(LOG_DEBUG,"TXbuffer is %s",TXbuffer);
+//        writelog(LOG_DEBUG,"287 strstr(TXbuffer, \"t2.txt\"  is [%s]",strstr(TXbuffer,"t2.txt"));
+
+
+        if ((strcmp(TXbuffer,"t2.txt=\"\"")==0) || !(strstr(TXbuffer,"Listening")==NULL))  //  Don't bother when string is t2.txt=""
+        {
+
+        }
+        else
+        {
+
+          int nr,user;
+
+          sendCommand(TXbuffer);
+
+          user=0;
+          nr=atoi(&TXbuffer[12]);
+          writelog(LOG_DEBUG,"nr is %u",nr);
+          if (nr>=1023001) {    //  KE7FNS  Theres no reason to search for a DMR ID that is less than the lowest possibe DMR ID.  This fixes issues where callsigns begining with 2E0 are mistaken for DMR ID's
+              user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+              writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
+          } else if (strstr(TXbuffer,"Listening")==NULL) {
+//            writelog(LOG_DEBUG,"308 TXbuffer, is [%s]",TXbuffer);
+            TXbuffer[strlen(TXbuffer)-1]=' ';
+//            writelog(LOG_DEBUG,"310 TXbuffer is now [%s]",TXbuffer);
+            char* l=strchr(&TXbuffer[12], ' ');
+//            writelog(LOG_DEBUG,"312 l is %s",l);
+            if (l!=NULL) l[0]=0;
+            writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
+            user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
+            writelog(LOG_DEBUG,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
+//            writelog(LOG_DEBUG,"data 1 = %s",users[user].data1);      //KE7FNS extra debug info
+//            writelog(LOG_DEBUG,"data 2 = %s",users[user].data2);
+//            writelog(LOG_DEBUG,"data 3 = %s",users[user].data3);
+//            writelog(LOG_DEBUG,"data 4 = %s",users[user].data4);
+//            writelog(LOG_DEBUG,"data 5 = %s",users[user].data5);
+          }
+//          writelog(LOG_DEBUG,"User is [%u]",user);
+
+          if (user>=0) {
+              sprintf(TXbuffer,"t13.txt=\"%s\"",users[user].data1);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t14.txt=\"%s\"",users[user].data2);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t15.txt=\"%s\"",users[user].data3);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t16.txt=\"%s\"",users[user].data4);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t17.txt=\"%s\"",users[user].data5);
+              sendCommand(TXbuffer);
+
+          } else if (nr>=1023001) {  //  KE7FNS  Theres no reason to search for a DMR ID that is less than the lowest possibe DMR ID.
+              sprintf(TXbuffer,"t13.txt=\"DMRID %d\"",nr);
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t14.txt=\"Not found in\"");
+              sendCommand(TXbuffer);
+              sprintf(TXbuffer,"t15.txt=\"%s\"",usersFile);
+              sendCommand(TXbuffer);
+          }
+          sprintf(text, "MMDVM.status.val=78");
+          sendCommand(text);
+          sendCommand("click S0,1");
+        }
     }
 
 

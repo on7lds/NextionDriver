@@ -1,5 +1,4 @@
 #!/bin/bash -x
-make clean
 make
 sudo chgrp bin NextionDriver
 sudo chown root NextionDriver

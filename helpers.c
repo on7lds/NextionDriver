@@ -37,7 +37,7 @@
 
 void getNetworkInterface(char* info) {
     const unsigned int IFLISTSIZ = 25U;
-    //unsigned int n;
+    int n;
 
     FILE* fp = fopen("/proc/net/route" , "r");
     if (fp == NULL) {
@@ -68,7 +68,7 @@ void getNetworkInterface(char* info) {
     }
 
     char interfacelist[IFLISTSIZ][50+INET6_ADDRSTRLEN];
-    for (unsigned int n = 0U; n < IFLISTSIZ; n++) {
+    for (n = 0U; n < IFLISTSIZ; n++) {
         interfacelist[n][0] = 0;
     }
 
@@ -93,10 +93,10 @@ void getNetworkInterface(char* info) {
                 continue;
             }
             if (family == AF_INET) {
-                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                sprintf(interfacelist[ifnr], "%s:%s", ifa->ifa_name, host);
                 writelog(LOG_INFO," IPv4: %s", interfacelist[ifnr]);
             } else {
-                sprintf(interfacelist[ifnr], "%s: %s", ifa->ifa_name, host);
+                sprintf(interfacelist[ifnr], "%s:%s", ifa->ifa_name, host);
                 writelog(LOG_INFO," IPv6: %s", interfacelist[ifnr]);
             }
             ifnr++;
@@ -107,7 +107,7 @@ void getNetworkInterface(char* info) {
 
     writelog(LOG_INFO," Default interface is : %s" , dflt);
 
-    for (unsigned int n = 0U; n < ifnr; n++) {
+    for (n = 0U; n < ifnr; n++) {
         char* p = strchr(interfacelist[n], '%');
         if (p != NULL)
           *p = 0;
@@ -578,7 +578,7 @@ int search_user_index_for_CALL(char* call, user_call_idx_t a[], int m, int n){
 	int i;
 	
 	i=search_user_array_for_CALL(call, a,  m,  n);
-	if (i>0) return usersCALL_IDX[i].nr; else return 0;
+	if (i>0) return usersCALL_IDX[i].nr; else return -1;  //KE7FNS  Should return an error, not the first index in the table
 }
 
 
@@ -791,10 +791,23 @@ void readUserDB(void){
             key[i++]=next;
             next = strtok(NULL,",");
         }
+        for(i=0;i<8;i++)  //KE7FNS  Added stripping of the chars ", \r and \n from being entered into the lookup array
+        {
+          if (strchr(key[i],'"') != NULL)
+            remove_all_chars(key[i],'"');
+
+          if (strchr(key[i],'\r') != NULL)
+            remove_all_chars(key[i],'\r');
+
+          if (strchr(key[i],'\n') != NULL)
+            remove_all_chars(key[i],'\n');
+        }
+
+
         if ((strlen(key[1])>1)&&(i>=2)) {
-//            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
+//        writelog(LOG_DEBUG, "Pushing %s, %s, %s, %s, %s", key[1], key[2], key[3], key[4], key[5]);  
 //            usleep(100000);
-            if (insert_user(users, nr, key[1], key[2], key[3], key[4], key[6])==0) break;
+            if (insert_user(users, nr, key[1], key[2], key[3], key[4], key[5])==0) break;  //KE7FNS changed the order of csv data to allow using unmodified free csv download from https://amateurradio.digital/
         }
 //		else printf("Not inserting [%s]\n",key[1]);
 		
@@ -868,7 +881,7 @@ int openTalkingSocket(void) {
     hints.ai_protocol = 0;
     hints.ai_flags    = AI_ADDRCONFIG;
 
-	writelog(LOG_DEBUG,"Try to open socket to %s:%s", hostname,remotePort);
+    writelog(LOG_DEBUG,"Try to open socket to %s:%s", hostname,remotePort);
     int err=getaddrinfo(hostname,remotePort,&hints,&display_addr);
     if (err!=0) {
         writelog(LOG_ERR,"Transparent Connection: failed to resolve remote socket address (err=%d)",err);
@@ -915,8 +928,8 @@ int openListeningSocket(void) {
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_in *addr;
 
-	writelog(LOG_DEBUG,"Try to open listening socket %s", localPort);
-	
+    writelog(LOG_DEBUG,"Try to open listening socket %s", localPort);
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
     hints.ai_socktype = SOCK_DGRAM;

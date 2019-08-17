@@ -48,8 +48,6 @@ int RXtail=0;
 char RXbuffertemp[1024];
 int sockRXtail=0;
 char sockRXbuffertemp[1024];
-char result[32];
-FILE *fp1;
 
 
 int open_nextion_serial_port(char* devicename, long BAUD);
@@ -88,9 +86,12 @@ void writelog(int level, char *fmt, ...)
 
 void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
-        write(fd2,cmd,strlen(cmd));
-        write(fd2,"\xFF\xFF\xFF",3);
-        writelog(LOG_DEBUG,"  TX: %s",cmd);
+        if (transparentIsEnabled==0)  //KE7FNS if we are using transparent data don't try to write to a serial port that isn't open.
+        {
+          write(fd2,cmd,strlen(cmd));
+          write(fd2,"\xFF\xFF\xFF",3);
+        }
+        writelog(LOG_DEBUG,"  TX: %s",cmd);    //KE7FNS fix spacing in log
         if (screenLayout==4)
             usleep(1042*(strlen(cmd)+1));
         else
@@ -251,8 +252,9 @@ void updateDisplay(void) {
 
 
 void handleButton(int received) {
-    char code, text[150];
-    int response;
+    char code, text[150], *cmd;
+    int response,resNmbr;
+    FILE *ls;
 
     response=0;
     if (received>1) {
@@ -301,16 +303,26 @@ void handleButton(int received) {
                     dumpLHlist();
                 } else {
                 if ((RXbuffer[1]<0xF2)&&(received>2)&&(received<200)) {
-                        writelog(LOG_NOTICE," Execute command \"%s\"",&RXbuffer[2]);
-                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", &RXbuffer[2]);
+                        cmd=&RXbuffer[2];
+                        resNmbr=RXbuffer[2];
+                        if (resNmbr<32) {
+                            cmd++;
+                            writelog(LOG_DEBUG," Command retunr field will be %d",resNmbr);
+                        }
+                        writelog(LOG_NOTICE," Execute command \"%s\"",cmd);
+                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", cmd);
                         sendCommand(TXbuffer);
                         if (RXbuffer[1]==0xF1) {
-                            FILE *ls = popen(&RXbuffer[2], "r");
+                            ls = popen(cmd, "r");
                             char buf[256];
                             if (fgets(buf, sizeof(buf), ls) != 0) {
                                 strtok(buf, "\n");
                                 writelog(LOG_NOTICE," Command response \"%s\"",buf);
-                                sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                if (resNmbr>=32) {
+                                    sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                                } else {
+                                    sprintf(TXbuffer, "result%02d.txt=\"%s\"",resNmbr, buf);
+                                }
                                 sendCommand(TXbuffer);
                             }
                             pclose(ls);
@@ -328,7 +340,7 @@ void handleButton(int received) {
             }
         }
         if (response>0) {
-            sprintf(text, "MMDVM.status.val=24");
+            sprintf(text, "MMDVM.status.val=200");
             sendCommand(text);
             sendCommand("click S0,1");
         };
@@ -445,7 +457,7 @@ void checkListeningSocket(void) {
 
 
 void talkToNextion(void) {
-    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"  RX: %s",TXbuffer);
+    if (strlen(TXbuffer)>0) writelog(LOG_DEBUG,"  RX: %s",TXbuffer);  //KE7FNS fix spacing in log
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
@@ -471,15 +483,14 @@ void showRXbuffer(int buflen) {
 
 int open_nextion_serial_port(char* devicename, long BAUD)
 {
-    int fd;
+    int fd,errnr;
     struct termios newtio;
 
 
     fd = open(devicename,O_RDWR | O_NOCTTY | O_NONBLOCK);
-
+    errnr=errno;
     if (fd < 0) {
-        perror(devicename);
-        writelog(LOG_ERR,"Serial port %s not found. Exiting.",devicename);
+        writelog(LOG_ERR,"Cannot open %s (%s). Exiting.",devicename,strerror(errnr));
         exit(EXIT_FAILURE);
     }
 
@@ -588,6 +599,18 @@ static void terminate(int sig)
 }
 
 
+int openTransparentDataPorts(void) {
+    int ok;
+
+    writelog(LOG_NOTICE,"Opening sockets ...");
+    ok=openTalkingSocket();
+    if (ok==1) ok=openListeningSocket();
+    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    return ok;
+}
+
+
+
 int main(int argc, char *argv[])
 {
     int t,ok,wait;
@@ -694,27 +717,12 @@ int main(int argc, char *argv[])
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
-    if (strlen(datafiledir)<3) {
-        ssize_t len;
-        if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
-            while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
-                datafiledir[strlen(datafiledir)-1]=0;
-            }
-        }
-    }
-    writelog(4,"Data files directory: %s", datafiledir);
-
-    readGroups();
-    readUserDB();
-
-    getDiskFree(TRUE);
-
     writelog(2,"Started with screenLayout %d", screenLayout);
     writelog(2,"Started with verbose level %d", verbose);
     if (removeDim) writelog(2,"Dim commands will be removed");
     if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
 
-    writelog(2,"Opening ports");
+    writelog(2,"Opening ports");  //KE7FNS moved to earlier on in the code to avoid a racing condition on RPi Zero W (single core) processors.
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
     if (strcmp(nextionPort,"modem")!=0) {
         if (screenLayout==4) {
@@ -740,40 +748,28 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (strlen(datafiledir)<3) {   //  KE7FNS  moved to a later time to allow the port to be open sooner so that it doesn't cause issues on RPi Zero W (single core) processors.
+        ssize_t len;
+        if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
+            while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
+                datafiledir[strlen(datafiledir)-1]=0;
+            }
+        }
+    }
+    writelog(4,"Data files directory: %s", datafiledir);
+
+    readGroups();
+    readUserDB();
+
+    getDiskFree(TRUE);
 
     t=0; wait=0; int r=0;
     #define SERBUFSIZE 1024
     char buffer[SERBUFSIZE*2];
     char* s;
-    int start=0;
+    int start=0, transparentIsOpen=0;
 
-    ok=transparentIsEnabled;
-
-    if (transparentIsEnabled==1)
-      {
-      do 
-        {
-        // Open the command for reading.
-        fp1 = popen("systemctl is-active mmdvmhost.service", "r");
-        if (fp1 == NULL)
-          {
-          writelog(LOG_NOTICE,"Failed to run command\n");
-          }
-        while (fgets(result, sizeof(result)-1, fp1)!= NULL)
-          {
-          writelog(LOG_NOTICE,"mmdvmhost.service is %s", result);
-          }
-        sleep(1);
-        writelog(LOG_NOTICE,"waiting for 1 second");
-        pclose(fp1);
-        }  while (strcmp(result,"active\n") != 0);
-        writelog(LOG_NOTICE,"continuing now that mmdvmhost.service is %s", result);
-      }
-
-    if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-    if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-    if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
+    if (transparentIsEnabled) transparentIsOpen=openTransparentDataPorts();
 
     int flash=0;
     char model[40];
@@ -781,6 +777,7 @@ int main(int argc, char *argv[])
     flash=checkDisplay(model);
     if (flash==0) writelog(LOG_ERR,"No Nextion display found.");
 
+    sendCommand("bkcmd=0");        //  KE7FNS  force Nextion to not report status results to clean up serial repeater traffic to make it parallel to MMDVMHost setup
     sendCommand("sleep=0");
     sendCommand("page 0");
     sendCommand("cls 0");
@@ -801,7 +798,7 @@ int main(int argc, char *argv[])
             getNetworkInterface(ipaddr);
             netIsActive[0]=getInternetStatus(check);
             if (netIsActive[0])
-                sprintf(TXbuffer,"t3.txt=\"%s\"", ipaddr);
+                sprintf(TXbuffer,"t3.txt=\"%d %s\"", start, ipaddr);
             else
                 sprintf(TXbuffer,"t3.txt=\"%d Waiting for network ...\"", start);
             sendCommand(TXbuffer);
@@ -812,16 +809,16 @@ int main(int argc, char *argv[])
     }
     writelog(2,"Starting %s network interface %s", netIsActive[0] ? "with" : "without", netIsActive[0] ? ipaddr : "");
 
-    //this should no longer be needed since we now wait for the port on mmdvmhost to be up
     //if needed, try again
-    //if ((ok=1) && (transparentIsEnabled==0)) {
-    //    writelog(2,"Retry to open sockets");
-    //    transparentIsEnabled=1;
-    //    if (transparentIsEnabled==1) writelog(LOG_NOTICE,"Opening sockets ...");
-    //    if (transparentIsEnabled==1) transparentIsEnabled=openTalkingSocket();
-    //    if (transparentIsEnabled==1) transparentIsEnabled=openListeningSocket();
-    //    writelog(2,"Transparent data sockets%s active", transparentIsEnabled ? "":" NOT");
-    //}
+    if (transparentIsEnabled && !transparentIsOpen) {
+        writelog(2,"Retry to open sockets");
+        start=0;
+        while ((start<30) && !transparentIsOpen) {
+            transparentIsOpen=openTransparentDataPorts();
+            sleep(5);
+            start+=5;
+        }
+    }
 
     start=0;
     RXtail=0;
