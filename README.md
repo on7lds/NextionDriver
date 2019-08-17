@@ -24,9 +24,7 @@ changed.
 When the files 'groups.txt' and 'stripped.csv' are present, usernames
 and talkgroup names will be looked up and sent to the display. 
 NOTE1 : both files have to be sorted in ascending ID order ! 
-NOTE2 : for the user data lookup to work, you MUST switch off 
-         the DMRID lookup of MMDVMHost (check README-examples
-         in the Nextion subdirectory)
+
 
 The program also has the ability of receiving commands from the Nextion
 display. This way, one can provide buttons on a layout and do something
@@ -39,7 +37,7 @@ MMDVMHost with buttons on the Nextion display !
 
 When the Nextion display is connected to the serial port of the modem,
 NextionDriver V1.03 and later is able to address that port. 
-How does dis work ?
+How does this work ?
 Normally, the data to the display goes directly from MMDVMHost to the
 modem, tagged as data for the serial port. The modem will then pass the
 data to the serial port.
