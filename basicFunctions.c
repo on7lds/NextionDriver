@@ -85,7 +85,7 @@ void basicFunctions() {
     //--------------------------------------------------------------
     //  * remove Freq and time when stopping
     //  * regularly check IP interface and send to display
-    //  * get CPU temperature & frequency & load average 
+    //  * get CPU temperature & frequency & load average
     //       and send to display
     //  * send RX frequency and location (info from MMDVM.ini)
     //--------------------------------------------------------------
@@ -167,7 +167,7 @@ void basicFunctions() {
 
         //Disk free %
         int f=getDiskFree(FALSE);
-        if (f<0) 
+        if (f<0)
             sprintf(text, "t23.txt=\"??\"");
         else
             sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
@@ -238,7 +238,7 @@ void basicFunctions() {
 
         }
         //Done
-        sprintf(text, "MMDVM.status.val=20");
+        sprintf(text, "MMDVM.status.val=24");    //  KE7FNS  changed because a conflict with MMDVMHost that uses status.val=20 for RX Frequency
         sendCommand(text);
         sendCommand("click S0,1");
     }

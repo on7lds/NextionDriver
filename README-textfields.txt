@@ -108,6 +108,7 @@ changed field.
 21 : TX Frequency
 22 : Temperature
 23 : Location
+24 : Nextion Driver extra info update (t3, t20, t21, t22, cpuload, t23)
 
 41 : D-Star listening
 42 : type/my1/my2
@@ -123,6 +124,7 @@ changed field.
 65 : TG1
 66 : RSSI1
 67 : ber1
+68 : User data TS1 (t18,19,20,21,22)
 69 : DMR listening2
 70 : ID2
 71 : TA2
@@ -130,8 +132,9 @@ changed field.
 73 : TG2
 74 : RSSI2
 75 : ber2
-76 : GPS1 (t8,t9,t12)
-77 : GPS2 (t10,t11,t13)
+76 : No longer used?
+77 : No longer used?
+78 : User data TS2 (t13,14,15,16,17)
 
 81 : YSF listening
 82 : src
@@ -171,9 +174,6 @@ t3 : ip address
 t4 : owner call
 t5 : owner ID
 t20 : CPU Temperature in C.   ( Can be changed to F in mmdmvhost config setting: [NEXTION] Section, Setting=DisplayTempInFahrenheit=1)
-t30 : RX Frequency
-t31 : Location
-t32 : TX Frequency
 
 
 D-Star
