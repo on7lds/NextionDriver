@@ -96,13 +96,15 @@ changed field.
  6 : page NXDN
  7 : page POCSAG
  
+ 
+ 0 : bkcmd  (nextion command to stop all sucess/failure messages over the serial port)
 11 : IDLE
-12 : CW
+12 : CW Ident
 13 : ERROR text
 14 : ERROR
 15 : LOCKOUT
 16 : IPaddress
-17 : ID/Call (t0 and t4,t5 are sent)
+17 : ID/Call (t0 and if layout >2 t4,and t5 are sent also)
 19 : END
 20 : RX Frequency
 21 : TX Frequency
