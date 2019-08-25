@@ -85,7 +85,7 @@ void basicFunctions() {
     //--------------------------------------------------------------
     //  * remove Freq and time when stopping
     //  * regularly check IP interface and send to display
-    //  * get CPU temperature & frequency & load average 
+    //  * get CPU temperature & frequency & load average
     //       and send to display
     //  * send RX frequency and location (info from MMDVM.ini)
     //--------------------------------------------------------------
@@ -167,7 +167,7 @@ void basicFunctions() {
 
         //Disk free %
         int f=getDiskFree(FALSE);
-        if (f<0) 
+        if (f<0)
             sprintf(text, "t23.txt=\"??\"");
         else
             sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
@@ -238,14 +238,14 @@ void basicFunctions() {
 
         }
         //Done
-        sprintf(text, "MMDVM.status.val=20");
+        sprintf(text, "MMDVM.status.val=24");
         sendCommand(text);
         sendCommand("click S0,1");
     }
 
 
     //send TG name if found (Slot 1)
-    if ((page==2)&&(strstr(TXbuffer,"t1.txt")!=NULL)) {
+    if ((page==2)&&(strstr(TXbuffer,"t1.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         char *TGname;
         int nr,TGindex;
         sendCommand(TXbuffer);
@@ -268,7 +268,7 @@ void basicFunctions() {
         sendCommand(TXbuffer);
     }
     //send TG name if found (Slot 2)
-    if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)) {
+    if ((page==2)&&(strstr(TXbuffer,"t3.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         char *TGname;
         int nr,TGindex;
         sendCommand(TXbuffer);
@@ -293,13 +293,14 @@ void basicFunctions() {
 
 
     //send user data if found (Slot 1)
-    if ((page==2)&&(strstr(TXbuffer,"t0.txt")!=NULL)) {
+    if ((page==2)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);
 
         user=0;
         nr=atoi(&TXbuffer[12]);
+        if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
         if (nr>0) {
             user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
             writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
@@ -337,13 +338,14 @@ void basicFunctions() {
         sendCommand("click S0,1");
     }
     //send user data if found (Slot 2)
-    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)) {
+    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);
 
         user=0;
         nr=atoi(&TXbuffer[12]);
+        if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
         if (nr>0) {
             user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
             writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);

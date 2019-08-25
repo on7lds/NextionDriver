@@ -578,7 +578,7 @@ int search_user_index_for_CALL(char* call, user_call_idx_t a[], int m, int n){
 	int i;
 	
 	i=search_user_array_for_CALL(call, a,  m,  n);
-	if (i>0) return usersCALL_IDX[i].nr; else return 0;
+	if (i>0) return usersCALL_IDX[i].nr; else return -1; //KE7FNS  Should return an error, not the first index in the table
 }
 
 

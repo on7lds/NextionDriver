@@ -86,14 +86,15 @@ void writelog(int level, char *fmt, ...)
 
 void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
-        write(fd2,cmd,strlen(cmd));
-        write(fd2,"\xFF\xFF\xFF",3);
-        writelog(LOG_DEBUG," TX:  %s",cmd);
-        if (screenLayout==4)
-            usleep(1042*(strlen(cmd)+1));
-        else
-            usleep(87*(strlen(cmd)+1));
-
+        if (fd2>0) { //thanks to KE7FNS
+            write(fd2,cmd,strlen(cmd));
+            write(fd2,"\xFF\xFF\xFF",3);
+            writelog(LOG_DEBUG," TX:  %s",cmd);
+            if (screenLayout==4)
+                usleep(1042*(strlen(cmd)+1));
+            else
+                usleep(87*(strlen(cmd)+1));
+        }
         sendTransparentData(MMDVM_DISPLAY,cmd);
 
         addLH(cmd);
@@ -337,7 +338,7 @@ void handleButton(int received) {
             }
         }
         if (response>0) {
-            sprintf(text, "MMDVM.status.val=200");
+            sprintf(text, "MMDVM.status.val=25");
             sendCommand(text);
             sendCommand("click S0,1");
         };
@@ -714,26 +715,7 @@ int main(int argc, char *argv[])
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
 
-    if (strlen(datafiledir)<3) {
-        ssize_t len;
-        if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
-            while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
-                datafiledir[strlen(datafiledir)-1]=0;
-            }
-        }
-    }
-    writelog(4,"Data files directory: %s", datafiledir);
-
-    readGroups();
-    readUserDB();
-
-    getDiskFree(TRUE);
-
-    writelog(2,"Started with screenLayout %d", screenLayout);
-    writelog(2,"Started with verbose level %d", verbose);
-    if (removeDim) writelog(2,"Dim commands will be removed");
-    if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
-
+    //Open port ASAP to prevent issues on slow boards (like Pi Zero) -- thanks to KE7FNS
     writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
     if (strcmp(nextionPort,"modem")!=0) {
@@ -759,6 +741,26 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE); 
         }
     }
+
+    if (strlen(datafiledir)<3) {
+        ssize_t len;
+        if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
+            while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
+                datafiledir[strlen(datafiledir)-1]=0;
+            }
+        }
+    }
+    writelog(4,"Data files directory: %s", datafiledir);
+
+    readGroups();
+    readUserDB();
+
+    getDiskFree(TRUE);
+
+    writelog(2,"Started with screenLayout %d", screenLayout);
+    writelog(2,"Started with verbose level %d", verbose);
+    if (removeDim) writelog(2,"Dim commands will be removed");
+    if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
 
 
     t=0; wait=0; int r=0;

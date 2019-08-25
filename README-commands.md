@@ -22,7 +22,7 @@ is sent to the display variable 'msg'
 There is an example HMI file included.
 Press on the MMDVM logo on the main screen to go to the 'system' page
   
-After executing the linux command, status.val=24 is sent and S0.click 
+After executing the linux command, status.val=25 is sent and S0.click 
 is triggered. This allows the display to process the command result, if 
 necessary.
   
@@ -67,7 +67,7 @@ When number=2, the display model and serial number are sent in 'msg1' and
 'msg2' respectively.
 
 The S0 click event will be activated after executing the command, with
-status value 24.
+status value 25.
 
 
 ##### Update Display
