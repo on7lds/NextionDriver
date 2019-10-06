@@ -254,13 +254,15 @@ void basicFunctions() {
         else
             nr=atoi(&TXbuffer[10]);
         TGindex=search_group(nr,groups,0,nmbr_groups-1);
+        writelog(LOG_INFO,"Search group %d (index %d)",nr,TGindex);
         if (TGindex>=0) {
             TGname=groups[TGindex].name;
+            writelog(LOG_INFO,"Found %s",TGname);
             sprintf(TXbuffer,"t9.txt=\"%s\"",TGname);
         } else if (TGindex<0) {
             //is it maybe a user private call ?
             TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
             if (TGindex>=0) sprintf(TXbuffer,"t9.txt=\"Private %s\"",users[TGindex].data1);
         } else {
             sprintf(TXbuffer,"t9.txt=\"TG%d name not found\"",nr);
@@ -277,13 +279,15 @@ void basicFunctions() {
         else
             nr=atoi(&TXbuffer[10]);
         TGindex=search_group(nr,groups,0,nmbr_groups-1);
+        writelog(LOG_INFO,"Search group %d (index %d)",nr,TGindex);
         if (TGindex>=0) {
             TGname=groups[TGindex].name;
+            writelog(LOG_INFO,"Found %s",TGname);
             sprintf(TXbuffer,"t8.txt=\"%s\"",TGname);
         } else if (TGindex<0) {
             //is it maybe a user private call ?
             TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
             if (TGindex>=0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
         } else {
             sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);
@@ -303,16 +307,17 @@ void basicFunctions() {
         if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
         if (nr>0) {
             user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
+            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,nr);
+            sprintf(text,"ID %d",nr);
         } else if (strstr(TXbuffer,"Listening")==NULL) {
             TXbuffer[strlen(TXbuffer)-1]=' ';
             char* l=strchr(&TXbuffer[12], ' ');
             if (l!=NULL) l[0]=0;
-            writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
+            writelog(LOG_INFO,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
+            writelog(LOG_INFO,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
+            sprintf(text,"%s",&TXbuffer[12]);
         }
-
         if (user>=0) {
             sprintf(TXbuffer,"t18.txt=\"%s\"",users[user].data1);
             sendCommand(TXbuffer);
@@ -324,9 +329,8 @@ void basicFunctions() {
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t22.txt=\"%s\"",users[user].data5);
             sendCommand(TXbuffer);
-
-        } else if (nr>0) {
-            sprintf(TXbuffer,"t18.txt=\"DMRID %d\"",nr);
+        } else {
+            sprintf(TXbuffer,"t18.txt=\"DMRID %s\"",text);
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t19.txt=\"Not found in\"");
             sendCommand(TXbuffer);
@@ -343,21 +347,22 @@ void basicFunctions() {
 
         sendCommand(TXbuffer);
 
-        user=0;
+        user=0; text[0]=0;
         nr=atoi(&TXbuffer[12]);
         if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
         if (nr>0) {
             user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,user);
+            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,nr);
+            sprintf(text,"ID %d",nr);
         } else if (strstr(TXbuffer,"Listening")==NULL) {
             TXbuffer[strlen(TXbuffer)-1]=' ';
             char* l=strchr(&TXbuffer[12], ' ');
             if (l!=NULL) l[0]=0;
-            writelog(LOG_DEBUG,"Search for call [%s] \n",&TXbuffer[12]);
+            writelog(LOG_INFO,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
-            writelog(LOG_DEBUG,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
+            writelog(LOG_INFO,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
+            sprintf(text,"%s",&TXbuffer[12]);
         }
-
         if (user>=0) {
             sprintf(TXbuffer,"t13.txt=\"%s\"",users[user].data1);
             sendCommand(TXbuffer);
@@ -369,9 +374,8 @@ void basicFunctions() {
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t17.txt=\"%s\"",users[user].data5);
             sendCommand(TXbuffer);
-
-        } else if (nr>0) {
-            sprintf(TXbuffer,"t13.txt=\"DMRID %d\"",nr);
+        } else {
+            sprintf(TXbuffer,"t13.txt=\"User %s\"",text);
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t14.txt=\"Not found in\"");
             sendCommand(TXbuffer);

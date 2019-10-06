@@ -39,6 +39,28 @@ Without the groups.txt file, free space is not calculated.
 ### DMRidFile
 name of the file with user number <-> name info
 
+### DMRidDelimiter
+what is the field delimiter character of the DMRis file
+default DMRidDelimiter=,
+
+### DMRidId, DMRidCall, DMRidName, DMRidX1, DMRidX2, DMRidX3
+
+which data fields to take from the DMRid file.
+default :  
+DMRidId=1  
+DMRidCall=2  
+DMRidName=3  
+DMRidX1=4  
+DMRidX2=5  
+DMRidX3=7  
+
+The extra field (X1, X2, X3) are the extra data you want to display. This an be
+city, region, country or city, state, country, or ...
+
+IMPORTANT:
+Each line in the DMRid file has to contain 2 .. 9 fields (more will not be read).  
+The absolute minimum is, of course, DMRid and call.
+
 
 ### RemoveDim
 if set to 1, the 'dim' commands are not passed to the display.

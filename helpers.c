@@ -30,6 +30,7 @@
 #include <sys/vfs.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "NextionDriver.h"
 #include "helpers.h"
@@ -144,6 +145,32 @@ void remove_all_chars(char* str, char c) {
 }
 
 
+
+void sanitize(char *line) {
+    char *new;
+    int index,indexN;
+
+    new=strdup(line);
+    if (new==NULL) printf("ERROR");
+
+    index=0;
+    indexN=0;
+
+    while (line[index]) {
+        if ((line[index]!='\'')&&(line[index]!='"')&&(line[index]!=0x0D)&&(line[index]!=0x0A)) {
+            new[indexN++]=line[index];
+        }
+        index++;
+    }
+    new[indexN]=0;
+
+    strcpy(line,new);
+    free(new);
+}
+
+
+
+
 int readConfig(void) {
     #define BUFFER_SIZE 200
     int i,found,ok;
@@ -184,6 +211,7 @@ int readConfig(void) {
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
+        sanitize(buffer);
         // since this is for Nextion displays, we assume Nextion is enabled,
         //  so we do not check this and only search for the screenLayout variable
         if (buffer[0] == '#') {
@@ -309,6 +337,48 @@ int readConfig(void) {
                 strcpy(usersFile,value);
                 found++;
             }
+            //----- Users -----
+            if (strcmp(key, "DMRidDelimiter") == 0) {
+                userDBDelimiter=value[0];
+                found++;
+            }
+            if (strcmp(key, "DMRidId") == 0) {
+                userDBId=(unsigned int)atoi(value);
+                if ((userDBId<1)||(userDBId>10))userDBId=1;
+                userDBId--;
+                found++;
+            }
+            if (strcmp(key, "DMRidCall") == 0) {
+                userDBCall=(unsigned int)atoi(value);
+                if ((userDBCall<1)||(userDBCall>10))userDBCall=2;
+                userDBCall--;
+                found++;
+            }
+            if (strcmp(key, "DMRidName") == 0) {
+                userDBName=(unsigned int)atoi(value);
+                if ((userDBName<1)||(userDBName>10))userDBName=3;
+                userDBName--;
+                found++;
+            }
+            if (strcmp(key, "DMRidX1") == 0) {
+                userDBX1=(unsigned int)atoi(value);
+                if ((userDBX1<1)||(userDBX1>10))userDBX1=4;
+                userDBX1--;
+                found++;
+            }
+            if (strcmp(key, "DMRidX2") == 0) {
+                userDBX2=(unsigned int)atoi(value);
+                if ((userDBX2<1)||(userDBX2>10))userDBX2=5;
+                userDBX2--;
+                found++;
+            }
+            if (strcmp(key, "DMRidX3") == 0) {
+                userDBX3=(unsigned int)atoi(value);
+                if ((userDBX3<1)||(userDBX3>10))userDBX3=7;
+                userDBX3--;
+                found++;
+            }
+            //----- ----- -----
             if (strcmp(key, "ChangePagesMode") == 0) {
                 changepages = (unsigned int)atoi(value);
                 found++;
@@ -575,10 +645,10 @@ int search_user_array_for_CALL(char* call, user_call_idx_t a[], int m, int n)
 
 
 int search_user_index_for_CALL(char* call, user_call_idx_t a[], int m, int n){
-	int i;
-	
-	i=search_user_array_for_CALL(call, a,  m,  n);
-	if (i>0) return usersCALL_IDX[i].nr; else return -1; //KE7FNS  Should return an error, not the first index in the table
+    int i;
+
+    i=search_user_array_for_CALL(call, a,  m,  n);
+    if (i>0) return usersCALL_IDX[i].nr; else return -1; //KE7FNS  Should return an error, not the first index in the table
 }
 
 
@@ -615,20 +685,20 @@ int insert_user_call_idx(user_call_idx_t table[], int index, void *call, int nr)
         return 0;
     }
 
-	m = malloc(256);
+    m = malloc(256);
     if (m==NULL) return 0;
     free(m);
-	
+
     table[index].nr = nr;
 
     int size;
     size=strlen(call)+1;
     table[index].call = malloc(size);
     memcpy(table[index].call,call,size);
-	
+
 //	writelog(LOG_DEBUG,"Inserted call [%s] = index [%d]",table[index].call,table[index].nr);
-	
-	return 1;
+
+    return 1;
 }
 
 
@@ -669,7 +739,7 @@ int insert_user(user_t table[], int nr, void *new_data1, void *new_data2, void *
     memcpy(table[nmbr_users].data5,new_data5,size);
 
 //printf("User index %5d: %d = [%s][%s][%s][%s][%s]\n", nmbr_users, table[nmbr_users].nr, table[nmbr_users].data1, table[nmbr_users].data2, table[nmbr_users].data3, table[nmbr_users].data4, table[nmbr_users].data5);
-	
+
     nmbr_users++;
 
     return 1;
@@ -685,10 +755,10 @@ int insert_group(group_t table[], int nr, void *new_data){
         return 0;
     }
 
-	m = malloc(256);
+    m = malloc(256);
     if (m==NULL) return 0;
     free(m);
-	
+
     table[nmbr_groups].nr = nr;
 
     int size;
@@ -696,10 +766,9 @@ int insert_group(group_t table[], int nr, void *new_data){
     table[nmbr_groups].name = malloc(size);
     memcpy(table[nmbr_groups].name,new_data,size);
     nmbr_groups++;
-	
-	return 1;
-}
 
+    return 1;
+}
 
 
 
@@ -708,7 +777,7 @@ int cmpstringp( const void* a, const void* b)
      int int_a = * ( (int*) a );
      int int_b = * ( (int*) b );
 
-	 return strcmp(users[int_a].data1,users[int_b].data1);
+     return strcmp(users[int_a].data1,users[int_b].data1);
 }
 
 
@@ -731,7 +800,7 @@ void readGroups(void){
 
     char buffer[BUFFER_SZ];
     int nr;
-
+    insert_group(groups, 0, "");
     while (fgets(buffer, BUFFER_SZ, fp) != NULL) {
         nr=0;
         char* key   = strtok(buffer, " \":");
@@ -753,14 +822,27 @@ void readGroups(void){
 }
 
 
+
+
 void readUserDB(void){
 #define BUFFER_SZ 100
     char fname[250];
+    char delimiters[3];
+    int i,nr;
+    char buffer[BUFFER_SZ];
+    char *key[10],*next;
+    char *niks = "";
 
     strcpy(fname,datafiledir);
     strcat(fname,usersFile);
     writelog(LOG_NOTICE,"  Reading users from %s",fname);
+    writelog(LOG_NOTICE,"   delimiter '%c'",userDBDelimiter);
+    writelog(LOG_NOTICE,"   DMRid in field %d",userDBId+1);
+    writelog(LOG_NOTICE,"   Call  in field %d",userDBCall+1);
+    writelog(LOG_NOTICE,"   Name  in field %d",userDBName+1);
+    writelog(LOG_NOTICE,"   Extra data in fields %d,%d and %d",userDBX1+1,userDBX2+1,userDBX3+1);
 
+    sprintf(delimiters,"%c\n",userDBDelimiter);
     nmbr_users=0;
 
     FILE* fp = fopen(fname, "rt");
@@ -769,45 +851,47 @@ void readUserDB(void){
         return;
     }
 
-    char buffer[BUFFER_SZ];
-    int nr,i;
-    char *key[8],*next;
-    char *niks = "";
+    insert_user(users, 0, "","","","","");
+
+    struct timespec start, stop;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
     while (fgets(buffer, BUFFER_SZ, fp) != NULL) {
-
         buffer[strlen(buffer)-1]=0;
+        sanitize(buffer);
 
-        nr=0;
-
-        next = strtok(buffer, ",");
+        for(i=0;i<10;i++)key[i]=niks;
+        next = strtok(buffer, delimiters);
         if (next == NULL) continue;
-        nr=atoi(next);
-
-        for(i=0;i<8;i++)key[i]=niks;
         i=0;
-        while((i<7)&&(next != NULL))
+        while((i<10)&&(next != NULL))
         {
             key[i++]=next;
-            next = strtok(NULL,",");
+            next = strtok(NULL,delimiters);
         }
-        if ((strlen(key[1])>1)&&(i>=2)) {
-//            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr, key[1], key[2], key[3], key[4], key[6]);fflush(NULL);
+        nr=atoi(key[userDBId]);
+        if ( (nr>1000000)&&(nr<10000000)&&(strlen(key[userDBCall])>3) ) {
+//            printf("%5d Pushing [%d] [%s] [%s] [%s] [%s]  [%s]\n",nmbr_users, nr,  key[userDBCall], key[userDBName], key[userDBX1], key[userDBX2], key[userDBX3]);fflush(NULL);
 //            usleep(100000);
-            if (insert_user(users, nr, key[1], key[2], key[3], key[4], key[6])==0) break;
+            if (insert_user(users, nr, key[userDBCall], key[userDBName], key[userDBX1], key[userDBX2], key[userDBX3])==0) break;
         }
-//		else printf("Not inserting [%s]\n",key[1]);
-		
+//            else printf("Not inserting [%s]\n",key[userDBCall]);
+
     }
     fclose(fp);
-    writelog(LOG_NOTICE,"  Read %d users.",nmbr_users);
-	
-	int userindexes[MAXUSERS];
-	for (i=0;i<nmbr_users;i++) userindexes[i]=i;
-	qsort( userindexes, nmbr_users, sizeof(userindexes[0]), cmpstringp );
-	for (i=0;i<nmbr_users;i++){ insert_user_call_idx(usersCALL_IDX,i,users[userindexes[i]].data1, userindexes[i]); }
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+    double result = (stop.tv_sec - start.tv_sec) * 1e3 + (stop.tv_nsec - start.tv_nsec) / 1e6;
+    writelog(LOG_NOTICE,"  Read %d users in %0.0f ms.",nmbr_users,result);
 
-    writelog(LOG_NOTICE,"  Sorted CALL table.");
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    int userindexes[MAXUSERS];
+    for (i=0;i<nmbr_users;i++) userindexes[i]=i;
+    qsort( userindexes, nmbr_users, sizeof(userindexes[0]), cmpstringp );
+    for (i=0;i<nmbr_users;i++){ insert_user_call_idx(usersCALL_IDX,i,users[userindexes[i]].data1, userindexes[i]); }
+
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+    result = (stop.tv_sec - start.tv_sec) * 1e3 + (stop.tv_nsec - start.tv_nsec) / 1e6;
+    writelog(LOG_NOTICE,"  Sorted CALL table in %0.0f ms.",result);
 }
 
 

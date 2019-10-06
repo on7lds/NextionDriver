@@ -75,11 +75,13 @@ void writelog(int level, char *fmt, ...)
     vsnprintf(str, 1024, fmt, args);
     va_end(args);
 
-    if ( (become_daemon==TRUE) && (verbose>(level-4)) ) {
-        str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
-            if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
-    } else {
-        printf("%s\n",str);
+    if (verbose>(level-4)) {
+        if ( (become_daemon==TRUE) ) {
+            str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
+                if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
+        } else {
+            printf("%s\n",str);
+        }
     }
 }
 
@@ -619,6 +621,13 @@ int main(int argc, char *argv[])
     screenLayout=2;
     inhibit=0;
 
+    userDBId=0;
+    userDBCall=1;
+    userDBName=2;
+    userDBX1=3;
+    userDBX2=4;
+    userDBX3=6;
+
     become_daemon=TRUE;
     ignore_other=FALSE;
     ok=0;
@@ -714,6 +723,7 @@ int main(int argc, char *argv[])
     }
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
+    writelog(2,"Using verbose level %d", verbose);
 
     //Open port ASAP to prevent issues on slow boards (like Pi Zero) -- thanks to KE7FNS
     writelog(2,"Opening ports");
