@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2019 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.15"
+#define NextionDriver_VERSION "1.16"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
@@ -83,6 +83,8 @@ int gelezen;
 int check;
 unsigned char inhibit;
 int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
+char userDBDelimiter;
+int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
 long sleepTimeOut;
 char ipaddr[100];
 #ifdef XTRA

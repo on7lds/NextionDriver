@@ -75,28 +75,28 @@ void writelog(int level, char *fmt, ...)
     vsnprintf(str, 1024, fmt, args);
     va_end(args);
 
-    if ( (become_daemon==TRUE) && (verbose>(level-4)) ) {
-        str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
-            if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
-    } else {
-        printf("%s\n",str);
+    if (verbose>(level-4)) {
+        if ( (become_daemon==TRUE) ) {
+            str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
+                if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
+        } else {
+            printf("%s\n",str);
+        }
     }
 }
 
 
 void sendCommand(char *cmd){
     if (strlen(cmd)>0) {
-        if (transparentIsEnabled==0)  //KE7FNS if we are using transparent data don't try to write to a serial port that isn't open.
-        {
-          write(fd2,cmd,strlen(cmd));
-          write(fd2,"\xFF\xFF\xFF",3);
+        if (fd2>0) { //thanks to KE7FNS
+            write(fd2,cmd,strlen(cmd));
+            write(fd2,"\xFF\xFF\xFF",3);
+            writelog(LOG_DEBUG," TX:  %s",cmd);
+            if (screenLayout==4)
+                usleep(1042*(strlen(cmd)+1));
+            else
+                usleep(87*(strlen(cmd)+1));
         }
-        writelog(LOG_DEBUG,"  TX: %s",cmd);    //KE7FNS fix spacing in log
-        if (screenLayout==4)
-            usleep(1042*(strlen(cmd)+1));
-        else
-            usleep(87*(strlen(cmd)+1));
-
         sendTransparentData(MMDVM_DISPLAY,cmd);
 
         addLH(cmd);
@@ -340,7 +340,7 @@ void handleButton(int received) {
             }
         }
         if (response>0) {
-            sprintf(text, "MMDVM.status.val=200");
+            sprintf(text, "MMDVM.status.val=25");
             sendCommand(text);
             sendCommand("click S0,1");
         };
@@ -621,6 +621,13 @@ int main(int argc, char *argv[])
     screenLayout=2;
     inhibit=0;
 
+    userDBId=0;
+    userDBCall=1;
+    userDBName=2;
+    userDBX1=3;
+    userDBX2=4;
+    userDBX3=6;
+
     become_daemon=TRUE;
     ignore_other=FALSE;
     ok=0;
@@ -716,13 +723,10 @@ int main(int argc, char *argv[])
     }
 
     if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
+    writelog(2,"Using verbose level %d", verbose);
 
-    writelog(2,"Started with screenLayout %d", screenLayout);
-    writelog(2,"Started with verbose level %d", verbose);
-    if (removeDim) writelog(2,"Dim commands will be removed");
-    if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
-
-    writelog(2,"Opening ports");  //KE7FNS moved to earlier on in the code to avoid a racing condition on RPi Zero W (single core) processors.
+    //Open port ASAP to prevent issues on slow boards (like Pi Zero) -- thanks to KE7FNS
+    writelog(2,"Opening ports");
     fd1=ptym_open(mux,mmdvmPort,sizeof(mux));
     if (strcmp(nextionPort,"modem")!=0) {
         if (screenLayout==4) {
@@ -748,7 +752,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (strlen(datafiledir)<3) {   //  KE7FNS  moved to a later time to allow the port to be open sooner so that it doesn't cause issues on RPi Zero W (single core) processors.
+    if (strlen(datafiledir)<3) {
         ssize_t len;
         if ((len = readlink("/proc/self/exe", datafiledir, sizeof(datafiledir)-1)) != -1) {
             while ((strlen(datafiledir)>0)&&(datafiledir[strlen(datafiledir)-1]!='/')) {
@@ -762,6 +766,12 @@ int main(int argc, char *argv[])
     readUserDB();
 
     getDiskFree(TRUE);
+
+    writelog(2,"Started with screenLayout %d", screenLayout);
+    writelog(2,"Started with verbose level %d", verbose);
+    if (removeDim) writelog(2,"Dim commands will be removed");
+    if (sleepWhenInactive) writelog(2,"Display will sleep when no data received for %d seconds",sleepWhenInactive);
+
 
     t=0; wait=0; int r=0;
     #define SERBUFSIZE 1024
