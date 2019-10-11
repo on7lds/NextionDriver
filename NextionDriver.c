@@ -621,6 +621,7 @@ int main(int argc, char *argv[])
     screenLayout=2;
     inhibit=0;
 
+    userDBDelimiter=',';
     userDBId=0;
     userDBCall=1;
     userDBName=2;
@@ -787,6 +788,7 @@ int main(int argc, char *argv[])
     flash=checkDisplay(model);
     if (flash==0) writelog(LOG_ERR,"No Nextion display found.");
 
+    sendCommand("bkcmd=0");
     sendCommand("sleep=0");
     sendCommand("page 0");
     sendCommand("cls 0");

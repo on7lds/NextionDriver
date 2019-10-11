@@ -9,6 +9,11 @@ For this, it is *necessary* to use the MMDVMHost code dated 20180815 or later
 (G4KLX GitID #f0ea25d or later). 
 It surely is OK when the MMDVMHost version string is 20180910 or later.
 
+NOTE:  When connecting a Nextion to the Nextion port on a MMDVM_HS hat,
+the Nextion screen default baud rate must be set to 9600 unless you
+build custom firmware and define a higher UART2 speed.  Send the
+following serial command in the Nextion simulator "bauds=9600"
+
 In the MMDVM.ini file, you **must** enable 'Transparent Data'
  **and** it's option 'SendFrameType', i.e. :
 

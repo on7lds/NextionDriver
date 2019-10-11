@@ -37,15 +37,16 @@ Without the groups.txt file, free space is not calculated.
 
 
 ### DMRidFile
-name of the file with user number <-> name info
+the name of the file with user number <-> name info
 
 ### DMRidDelimiter
-what is the field delimiter character of the DMRis file
-default DMRidDelimiter=,
+the field delimiter character of the DMRis file  
+default:  
+DMRidDelimiter=,
 
 ### DMRidId, DMRidCall, DMRidName, DMRidX1, DMRidX2, DMRidX3
 
-which data fields to take from the DMRid file.
+which data fields to take from the DMRid file.  
 default :  
 DMRidId=1  
 DMRidCall=2  
@@ -65,7 +66,7 @@ The absolute minimum is, of course, DMRid and call.
 ### RemoveDim
 if set to 1, the 'dim' commands are not passed to the display.
 So MMDVMHost does not set the display backlight any more. You can do it yourself
- bij coding it in the display.
+ by coding it in the display.
 
 
 ### SleepWhenInactive

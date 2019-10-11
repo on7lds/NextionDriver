@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.16"
+#define NextionDriver_VERSION "1.17"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
