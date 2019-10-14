@@ -29,7 +29,7 @@
 //============================================================================
 void processButtons(unsigned char code) {
 
-char buf[100];
+char buf[1200];
 
     //See the README file for how to define a button on the Nextion Display
 

@@ -428,10 +428,10 @@ void checkListeningSocket(void) {
     for (i=sockRXtail;i<(sockRXtail+numbytes);i++) {
         if (strlen(buf)<sizeof(buf)-10) {
             if ((sockRXbuffertemp[i]<32)||(sockRXbuffertemp[i]>126)) 
-                sprintf(buf,"%s[%02X]",buf,sockRXbuffertemp[i]); 
-                else sprintf(buf,"%s%c",buf,sockRXbuffertemp[i]); 
+                sprintf(buf+strlen(buf),"[%02X]",sockRXbuffertemp[i]);
+                else sprintf(buf+strlen(buf),"%c",sockRXbuffertemp[i]);
             } else {
-                sprintf(buf,"%s ...",buf);
+                strcat(buf," ...");
                 break;
             }
     }

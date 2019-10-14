@@ -316,7 +316,11 @@ void basicFunctions() {
             writelog(LOG_INFO,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
             writelog(LOG_INFO,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
-            sprintf(text,"%s",&TXbuffer[12]);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+            TXbuffer[24]=0;
+            strncpy(text,&TXbuffer[12],99);
+#pragma GCC diagnostic pop
         }
         if (user>=0) {
             sprintf(TXbuffer,"t18.txt=\"%s\"",users[user].data1);
@@ -361,7 +365,11 @@ void basicFunctions() {
             writelog(LOG_INFO,"Search for call [%s] \n",&TXbuffer[12]);
             user=search_user_index_for_CALL(&TXbuffer[12],usersCALL_IDX,0,nmbr_users-1);
             writelog(LOG_INFO,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[12]);
-            sprintf(text,"%s",&TXbuffer[12]);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+            TXbuffer[24]=0;
+            strncpy(text,&TXbuffer[12],99);
+#pragma GCC diagnostic pop
         }
         if (user>=0) {
             sprintf(TXbuffer,"t13.txt=\"%s\"",users[user].data1);
@@ -386,5 +394,4 @@ void basicFunctions() {
         sendCommand(text);
         sendCommand("click S0,1");
     }
-
 }
