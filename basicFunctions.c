@@ -262,7 +262,7 @@ void basicFunctions() {
         } else if (TGindex<0) {
             //is it maybe a user private call ?
             TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,nr);
             if (TGindex>=0) sprintf(TXbuffer,"t9.txt=\"Private %s\"",users[TGindex].data1);
         } else {
             sprintf(TXbuffer,"t9.txt=\"TG%d name not found\"",nr);
@@ -287,7 +287,7 @@ void basicFunctions() {
         } else if (TGindex<0) {
             //is it maybe a user private call ?
             TGindex=search_user_index_for_ID(nr,users,0,nmbr_users-1);
-            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,TGindex);
+            writelog(LOG_INFO,"- Found [%s] for ID %d",users[TGindex].data1,nr);
             if (TGindex>=0) sprintf(TXbuffer,"t8.txt=\"Private %s\"",users[TGindex].data1);
         } else {
             sprintf(TXbuffer,"t8.txt=\"TG%d name not found\"",nr);

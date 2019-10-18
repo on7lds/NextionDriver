@@ -461,6 +461,7 @@ void talkToNextion(void) {
     basicFunctions();
     processCommands();
     sendCommand(TXbuffer);
+    TXbuffer[0]=0;
     checkSerial();
     checkListeningSocket();
     if (!become_daemon) fflush(NULL);
