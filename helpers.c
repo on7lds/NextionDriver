@@ -830,7 +830,7 @@ void readUserDB(void){
     char delimiters[3];
     int i,nr;
     char buffer[BUFFER_SZ];
-    char *key[10],*next;
+    char *key[10],*next,*bufP;
     char *niks = "";
 
     strcpy(fname,datafiledir);
@@ -859,15 +859,16 @@ void readUserDB(void){
     while (fgets(buffer, BUFFER_SZ, fp) != NULL) {
         buffer[strlen(buffer)-1]=0;
         sanitize(buffer);
-
+        bufP=&buffer[0];
+//    printf("Analysing %s\n",buffer);
         for(i=0;i<10;i++)key[i]=niks;
-        next = strtok(buffer, delimiters);
+        next = strsep(&bufP, delimiters);
         if (next == NULL) continue;
         i=0;
         while((i<10)&&(next != NULL))
         {
             key[i++]=next;
-            next = strtok(NULL,delimiters);
+            next = strsep(&bufP,delimiters);
         }
         nr=atoi(key[userDBId]);
         if ( (nr>1000000)&&(nr<10000000)&&(strlen(key[userDBCall])>3) ) {
@@ -875,7 +876,7 @@ void readUserDB(void){
 //            usleep(100000);
             if (insert_user(users, nr, key[userDBCall], key[userDBName], key[userDBX1], key[userDBX2], key[userDBX3])==0) break;
         }
-//            else printf("Not inserting [%s]\n",key[userDBCall]);
+//            else printf("   Not inserting [%d][%s]\n",nr,key[userDBCall]);
 
     }
     fclose(fp);

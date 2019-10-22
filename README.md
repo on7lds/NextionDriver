@@ -1,11 +1,16 @@
-NextionDriver (for MMDVMHost)
-=============================
+NextionDriver (for MMDVMHost) by ON7LDS
+=======================================
+
+Find the last version on https://github.com/on7lds/
 
 The purpose of this program is to provide additional control for
 Nextion display layouts other than the MMDVMHost supplied layouts.
 It does this by sitting between MMDVMHost and the Nextion Display.
 This program takes the commands, sent by MMDVMHost and translates,
-changes, adds or removes these commands.
+changes, adds or removes these commands. 
+On top of that, it can also process commands from the display and 
+execute corresponding commands on the host.
+
 
 Since the program has to read the MMDVMHost configuration file
 (MMDVM.ini or /etc/mmdvmhost on PiStar) to know the Layout (for
