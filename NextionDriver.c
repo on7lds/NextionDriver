@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017...2019 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2020 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -43,12 +43,56 @@
 #include "processButtons.h"
 #include "helpers.h"
 
+char mux[100];
+char mmdvmPort[100];
+char nextionPort[100];
+char nextionDriverLink[100];
+char configFile[200];
+char datafiledir[500];
+char groupsFile[100],usersFile[100];
+int verbose, screenLayout;
+
+int gelezen,check;
+unsigned char inhibit;
+int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
+char userDBDelimiter;
+int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
+long sleepTimeOut;
+char ipaddr[100];
+#ifdef XTRA
+unsigned int RXfrequency,TXfrequency;
+char location[90];
+#endif
+group_t groups[MAXGROUPS];
+user_t users[MAXUSERS];
+user_call_idx_t usersCALL_IDX[MAXUSERS];
+int nmbr_groups, nmbr_users;
+
+int fd1,fd2;
+int display_TXsock;
+int display_RXsock;
+struct addrinfo* display_addr;
+
+char DisplayInfo[8][30];
+
+int become_daemon,ignore_other;
+int modeIsEnabled[20];
+int netIsActive[10];
+
+int transparentIsEnabled,sendFrameType;
+char remotePort[10],localPort[10];
+
+char TXbuffer[1024],RXbuffer[1024];
+
+char* RGBtoNextionColor(int RGB);
+void sendCommand(char *cmd);
+void writelog(int level, char *fmt, ...);
+
 const char ENDMRKR[3]="\xFF\xFF\xFF";
 int RXtail=0;
 char RXbuffertemp[1024];
 int sockRXtail=0;
 char sockRXbuffertemp[1024];
-
 
 int open_nextion_serial_port(char* devicename, long BAUD);
 
@@ -418,7 +462,7 @@ void checkListeningSocket(void) {
         exit(1);
     }
     writelog(LOG_DEBUG,"Got %d bytes from %s",numbytes, inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), a, sizeof a));
-    switch (sockRXbuffertemp[0]) {
+    switch ((unsigned int)sockRXbuffertemp[0]) {
         case 0x80:    writelog(LOG_DEBUG,"Origin : serial passthrough"); break;
         case 0x90:    writelog(LOG_DEBUG,"Origin : transparent data"); break;
         default : writelog(LOG_DEBUG,"Origin unknown (%02X)",sockRXbuffertemp[0]); break;

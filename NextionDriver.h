@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2019 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2020 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -19,13 +19,13 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.17"
+#define NextionDriver_VERSION "1.18"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
     it is not necessary to do it with NextionDriver any more.
 
-    If you do want nextionDriver to handle these parameters,
+    If you do want NextionDriver to handle these parameters,
     uncomment the following line                                  */
 //#define XTRA
 
@@ -49,14 +49,6 @@
 #define BAUDRATE3	B9600
 #define BAUDRATE4	B115200
 
-char mux[100];
-char mmdvmPort[100];
-char nextionPort[100];
-char nextionDriverLink[100];
-char configFile[200];
-char datafiledir[500];
-char groupsFile[100],usersFile[100];
-int verbose, screenLayout;
 
 typedef struct groupdata
 {
@@ -79,42 +71,50 @@ typedef struct user_idx_data{
 	int nr;
 } user_call_idx_t;
 
-int gelezen;
-int check;
-unsigned char inhibit;
-int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
-char userDBDelimiter;
-int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
-long sleepTimeOut;
-char ipaddr[100];
+extern char TXbuffer[1024],RXbuffer[1024];
+
+extern long sleepTimeOut;
+extern int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
+extern int check;
+extern char ipaddr[100];
+extern int modeIsEnabled[20];
+extern int netIsActive[10];
+extern char groupsFile[100],usersFile[100];
+extern group_t groups[MAXGROUPS];
+extern user_t users[MAXUSERS];
+extern int nmbr_groups, nmbr_users;
+
+
 #ifdef XTRA
-unsigned int RXfrequency,TXfrequency;
-char location[200];
+extern unsigned int RXfrequency,TXfrequency;
+extern char location[90];
 #endif
-group_t groups[MAXGROUPS];
-user_t users[MAXUSERS];
-user_call_idx_t usersCALL_IDX[MAXUSERS];
-int nmbr_groups, nmbr_users;
 
-int fd1,fd2;
-int display_TXsock;
-int display_RXsock;
-struct addrinfo* display_addr;
 
-char DisplayInfo[8][30];
+extern user_call_idx_t usersCALL_IDX[MAXUSERS];
 
-int become_daemon,ignore_other;
+extern char remotePort[10],localPort[10];
+extern int transparentIsEnabled,sendFrameType;
+extern char datafiledir[500];
 
-int modeIsEnabled[20];
-int netIsActive[10];
+extern char nextionDriverLink[100];
+extern int verbose, screenLayout;
 
-int transparentIsEnabled,sendFrameType;
-char remotePort[10],localPort[10];
+extern char nextionPort[100];
+extern char configFile[200];
 
-char TXbuffer[1024],RXbuffer[1024];
+extern char userDBDelimiter;
+extern int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
+
+extern int display_TXsock;
+extern int display_RXsock;
+extern struct addrinfo* display_addr;
 
 char* RGBtoNextionColor(int RGB);
 void sendCommand(char *cmd);
 void writelog(int level, char *fmt, ...);
+
+
+
 
 #endif

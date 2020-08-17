@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2020 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -117,7 +117,7 @@ void basicFunctions() {
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==0)) {
         FILE *deviceInfoFile;
         double val;
-//see basicFunction.h for info about defining the XTRA condition
+//see NextionDriver.h for info about defining the XTRA condition
 #ifdef XTRA
         //CPU temperature
         deviceInfoFile = fopen ("/sys/class/thermal/thermal_zone0/temp", "r");
@@ -175,16 +175,16 @@ void basicFunctions() {
 
 #ifdef XTRA
         //RXFrequency
-        float fx;
+        double fx;
         fx=RXfrequency;
         fx/=1000000;
-        sprintf(text, "t30.txt=\"%3.4fMHz\"",fx);
+        sprintf(text, "t30.txt=\"%3.6fMHz\"",fx);
         sendCommand(text);
 
         //TXFrequency
         fx=TXfrequency;
         fx/=1000000;
-        sprintf(text, "t32.txt=\"%3.4fMHz\"",fx);
+        sprintf(text, "t32.txt=\"%3.6fMHz\"",fx);
         sendCommand(text);
 
         //Location
