@@ -88,7 +88,7 @@ char* RGBtoNextionColor(int RGB);
 void sendCommand(char *cmd);
 void writelog(int level, char *fmt, ...);
 
-const char ENDMRKR[3]="\xFF\xFF\xFF";
+const char ENDMRKR[4]="\xFF\xFF\xFF\x00";
 int RXtail=0;
 char RXbuffertemp[1024];
 int sockRXtail=0;
@@ -122,7 +122,7 @@ void writelog(int level, char *fmt, ...)
     if (verbose>(level-4)) {
         if ( (become_daemon==TRUE) ) {
             str[98]='.';str[99]='.';str[100]='.'; str[101]=0; 
-                if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, str);
+                if (!((str[5]=='2')&&(str[20]==' ')&&(strlen(str)==30))) syslog(level, "%s", str);
         } else {
             printf("%s\n",str);
         }

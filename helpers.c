@@ -518,7 +518,7 @@ void addLH(char* displaydatabuf ) {
 
 void LHlist(int page,int aant) {
     int i,f,s;
-    char text[100];
+    char text[100],tmp[50];
 
 //nog niet OK
     if (aant>=LH_INDEXES)aant=LH_INDEXES;
@@ -529,7 +529,8 @@ void LHlist(int page,int aant) {
 //printf("--> %d --> %d  \n",i,s);
         for (f=0;f<LH_FIELDS;f++) {
             if (strlen(data[page][f][s])>1) {
-                sprintf(text,"LH%dt%d.%s",i,f,data[page][f][s]);
+                strncpy(tmp,data[page][f][s],48); tmp[49]=0;
+                sprintf(text,"LH%dt%d.%s",i,f,tmp);
                 sendCommand(text); usleep(50);
             }
         }

@@ -1,7 +1,7 @@
 
 CC      = gcc
 CXX     = g++
-CFLAGS  = -Wall -O2 -D_GNU_SOURCE -fno-common
+CFLAGS  = -w -O2 -D_GNU_SOURCE -fno-common
 
 SOURCE = \
 		NextionDriver.c basicFunctions.c processCommands.c processButtons.c helpers.c
