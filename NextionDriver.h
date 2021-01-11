@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2020 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.18"
+#define NextionDriver_VERSION "1.19"
 
 /* the code to extract RX and TX freq and location has been
     included in MMDVMHost 20180910 and later, so
@@ -27,7 +27,7 @@
 
     If you do want NextionDriver to handle these parameters,
     uncomment the following line                                  */
-//#define XTRA
+#define XTRA
 
 
 #define TRUE	1
@@ -40,7 +40,7 @@
 #define CONFIGFILE		"/etc/MMDVM.ini"
 #define GROUPSFILE		"groups.txt"
 #define USERSFILE		"stripped.csv"
-#define MAXGROUPS	1500
+#define MAXGROUPS	2500
 #define MAXUSERS	200000
 
 #define MODEM_DISPLAY 0

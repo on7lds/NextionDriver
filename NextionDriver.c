@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017...2020 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -43,6 +43,8 @@
 #include "processButtons.h"
 #include "helpers.h"
 
+const char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
+
 char mux[100];
 char mmdvmPort[100];
 char nextionPort[100];
@@ -68,6 +70,7 @@ user_t users[MAXUSERS];
 user_call_idx_t usersCALL_IDX[MAXUSERS];
 int nmbr_groups, nmbr_users;
 
+int signal_action = 0;
 int fd1,fd2;
 int display_TXsock;
 int display_RXsock;
@@ -622,8 +625,6 @@ static void go_daemon() {
 
 static void terminate(int sig)
 {
-    char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
-
     inhibit=0;
     sendCommand("sleep=0");
     sendCommand("ussp=0");
@@ -655,10 +656,17 @@ int openTransparentDataPorts(void) {
 }
 
 
+static void signal_action_proc(int sig)
+{
+    writelog(0, "Got signal %s",signame[sig]);
+    signal_action = sig;
+}
+
 
 int main(int argc, char *argv[])
 {
     int t,ok,wait;
+    sigset_t blockset;
 
     display_addr=0;
     check=0;
@@ -687,8 +695,12 @@ int main(int argc, char *argv[])
     signal(SIGQUIT, terminate);           // 'Ctrl-\'
     signal(SIGHUP, terminate);
     signal(SIGTERM, terminate);
-    signal(SIGUSR1, terminate);
-    signal(SIGUSR2, terminate);
+    signal(SIGUSR1, signal_action_proc);
+    signal(SIGUSR2, signal_action_proc);
+
+    sigemptyset(&blockset);
+    sigaddset(&blockset,SIGUSR1);
+    sigaddset(&blockset,SIGUSR2);
 
     strcpy(nextionDriverLink,NEXTIONDRIVERLINK);
     strcpy(nextionPort,NEXTIONPORT);
@@ -906,6 +918,12 @@ int main(int argc, char *argv[])
         }
         if ((start==0)||(wait++>1000)) { wait=0; memset(buffer,0,SERBUFSIZE*2); TXbuffer[0]=0; talkToNextion(); }
 //        usleep(1000);
+
+        sigprocmask(SIG_UNBLOCK, &blockset, NULL);
+        if (signal_action == SIGUSR1) { readUsersGroups(); signal_action = 0; }
+        if (signal_action == SIGUSR2) { print_users(); print_groups(); signal_action = 0; }
+        sigprocmask(SIG_BLOCK, &blockset, NULL);
+
     }
     close(fd1);
     close(fd2);

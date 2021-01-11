@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2018 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017,2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -894,6 +894,28 @@ void readUserDB(void){
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
     result = (stop.tv_sec - start.tv_sec) * 1e3 + (stop.tv_nsec - start.tv_nsec) / 1e6;
     writelog(LOG_NOTICE,"  Sorted CALL table in %0.0f ms.",result);
+}
+
+
+void readUsersGroups(void) {
+    writelog(LOG_NOTICE,"Clearing users and groups ...");
+    int i;
+
+    for (i=nmbr_groups-1;i>=0;i--) {
+        free(groups[i].name);
+    }
+    for (i=nmbr_users-1;i>=0;i--) {
+        free(users[i].data1);
+        free(users[i].data2);
+        free(users[i].data3);
+        free(users[i].data4);
+        free(users[i].data5);
+        free(usersCALL_IDX[i].call);
+    }
+
+    writelog(LOG_NOTICE,"Re-reading users and groups ...");
+    readGroups();
+    readUserDB();
 }
 
 

@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017...2020 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -49,6 +49,8 @@ void LHlist(int,int);
 void dumpLHlist(void);
 void readGroups(void);
 void readUserDB(void);
+void readUsersGroups(void);
+void print_groups(void);
 void print_users(void);
 void print_call_id(void);
 int getDiskFree(int log);
