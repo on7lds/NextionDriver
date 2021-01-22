@@ -27,7 +27,7 @@
 
     If you do want NextionDriver to handle these parameters,
     uncomment the following line                                  */
-#define XTRA
+// #define XTRA
 
 
 #define TRUE	1
