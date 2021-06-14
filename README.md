@@ -3,6 +3,21 @@ NextionDriver (for MMDVMHost) by ON7LDS
 
 Find the last version on https://github.com/on7lds/
 
+```
+Latest version : 1.20 (jun 2021)
+* shows frequency, temperature, location, ... even if MMDVMHost does not send them  
+* ability to update your users and groups files via a button on your display  
+* specify your preferred source for users and groups data  
+* separate first name and last name fiels in the users file can be combined to one name  
+* more info from the OS can be obtained (check the 'Sending commands' readme)  
+  
+TAKE NOTE:  
+  the default filename or the users file (DMRidFile)  
+  is changed from stripped.csv to users.csv !
+```
+
+  
+  
 The purpose of this program is to provide additional control for
 Nextion display layouts other than the MMDVMHost supplied layouts.
 It does this by sitting between MMDVMHost and the Nextion Display.
@@ -27,7 +42,7 @@ This program also checks the network interface regularly, and it will
 show the most recent IP address, so you can check if the IP address
 changed.
 
-When the files 'groups.txt' and 'stripped.csv' are present, usernames
+When the files 'groups.txt' and 'users.csv' are present, usernames
 and talkgroup names will be looked up and sent to the display. 
 NOTE : both files have to be sorted in ascending ID order ! 
 
@@ -61,6 +76,6 @@ to MMDVMHost for this to work!
 - [Modem connected displays](README-modemdisplays.md "Modem connected displays")
 - [Autostart NextionDriver](README-starting.md "Autostart NextionDriver")
 - [Configuration file options](README-options.md "Configuration file options")
-- [Sendig commands from display to host](README-commands.md "Sendig commands from display to host")
+- [Sending commands from display to host](README-commands.md "Sending commands from display to host")
 - [Change the program by coding yourself](README-coding.md "Change the program by coding yourself")
 

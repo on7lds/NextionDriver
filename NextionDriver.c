@@ -36,7 +36,6 @@
 #include <dirent.h>
 #include <time.h>
 
-
 #include "NextionDriver.h"
 #include "basicFunctions.h"
 #include "processCommands.h"
@@ -52,7 +51,9 @@ char nextionDriverLink[100];
 char configFile[200];
 char datafiledir[500];
 char groupsFile[100],usersFile[100];
+char groupsFileSrc[200],usersFileSrc[200];
 int verbose, screenLayout;
+char OSname[100],PIname[100];
 
 int gelezen,check;
 unsigned char inhibit;
@@ -61,10 +62,9 @@ char userDBDelimiter;
 int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
 long sleepTimeOut;
 char ipaddr[100];
-#ifdef XTRA
 unsigned int RXfrequency,TXfrequency;
 char location[90];
-#endif
+unsigned char tempInF;
 group_t groups[MAXGROUPS];
 user_t users[MAXUSERS];
 user_call_idx_t usersCALL_IDX[MAXUSERS];
@@ -299,8 +299,8 @@ void updateDisplay(void) {
 
 
 void handleButton(int received) {
-    char code, text[150], *cmd;
-    int response,resNmbr;
+    char code, text[150],info[100], *cmd;
+    int response,resNmbr, ok;
     FILE *ls;
 
     response=0;
@@ -344,7 +344,37 @@ void handleButton(int received) {
                     response=RXbuffer[1];
                 } else
                 if (RXbuffer[1]==0xFB){
-                    updateDisplay();
+                    if (received==2) updateDisplay(); // else writelog(LOG_NOTICE," index %d",RXbuffer[2]);
+                    if (received==3) {
+                        if (RXbuffer[2]==0) { updateDisplay(); }
+                        if (RXbuffer[2]==1) { updateDB(86400); }
+                        if (RXbuffer[2]==2) { updateDB(0); }
+                        if (RXbuffer[2]==3) writelog(LOG_NOTICE,"Not yet implemented");
+                        if (RXbuffer[2]==4) {   writelog(LOG_NOTICE,"Sending OS info");
+                                                sprintf(text, "msg1.txt=\"%s\"",OSname); sendCommand(text);
+                                                sprintf(text, "msg2.txt=\"%s\"",PIname); sendCommand(text);
+                                            }
+                        if (RXbuffer[2]==5) {   ok=getHWinfo(info);
+                                                if (ok==0) {
+                                                    sprintf(text, "msg1.txt=\"%s\"",info);
+                                                    writelog(LOG_NOTICE,"Hardware info: %s",info);
+                                                } else {
+                                                    sprintf(text, "msg1.txt=\"no info (%d)\"",ok);
+                                                    writelog(LOG_NOTICE,"Hardware info: none found (%d).",ok);
+                                                }
+                                                sendCommand(text);
+
+                                                ok=getMeminfo(info);
+                                                if (ok==0) {
+                                                    sprintf(text, "msg2.txt=\"Total Memory %s\"",info);
+                                                    writelog(LOG_NOTICE,"Memory info: %s",info);
+                                                } else {
+                                                    sprintf(text, "msg2.txt=\"no info (%d)\"",ok);
+                                                    writelog(LOG_NOTICE,"Memory info: none found (%d).",ok);
+                                                }
+                                                sendCommand(text);
+                        }
+                    }
                 } else
                 if (RXbuffer[1]==0xF2){
                     dumpLHlist();
@@ -677,9 +707,9 @@ int main(int argc, char *argv[])
     userDBDelimiter=',';
     userDBId=0;
     userDBCall=1;
-    userDBName=2;
-    userDBX1=3;
-    userDBX2=4;
+    userDBName=34;  // fields 2 and 3
+    userDBX1=4;
+    userDBX2=5;
     userDBX3=6;
 
     become_daemon=TRUE;
@@ -689,7 +719,6 @@ int main(int argc, char *argv[])
 
 
     signal(SIGPIPE, SIG_IGN);
-    signal(SIGCHLD, SIG_IGN);
     // terminate on these signals
     signal(SIGINT, terminate);            // 'Ctrl-C'
     signal(SIGQUIT, terminate);           // 'Ctrl-\'
@@ -707,6 +736,8 @@ int main(int argc, char *argv[])
     strcpy(configFile,CONFIGFILE);
     strcpy(groupsFile,GROUPSFILE);
     strcpy(usersFile,USERSFILE);
+    strcpy(groupsFileSrc,GROUPSFILESRC);
+    strcpy(usersFileSrc,USERSFILESRC);
 
     datafiledir[0]=0;
     for (t=1;t<8;t++)DisplayInfo[t][0]=0;
@@ -780,8 +811,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!readConfig()) { writelog(LOG_ERR,"MMDVM Config not found. Exiting."); exit(EXIT_FAILURE); };
+    ok=readConfig();
+    if (ok==2) { writelog(LOG_ERR,"\nMMDVM Config not correct/complete (is there a NextionDriver section ?).\n"); exit(EXIT_FAILURE); };
+    if (ok==3) { writelog(LOG_ERR, "\nCouldn't open the MMDVM config file - %s\n", configFile); exit(EXIT_FAILURE); }
     writelog(2,"Using verbose level %d", verbose);
+
+
+    strcpy(OSname,"OS unknown"); readVersions("/etc/os-release");
+    writelog(2,"Running on %s",OSname);
+    strcpy(PIname,"Not Pi-Star"); readVersions("/etc/pistar-release");
+    if (strlen(PIname)>1) writelog(2,"Pi star v %s",OSname);
 
     //Open port ASAP to prevent issues on slow boards (like Pi Zero) -- thanks to KE7FNS
     writelog(2,"Opening ports");
@@ -820,6 +859,7 @@ int main(int argc, char *argv[])
     }
     writelog(4,"Data files directory: %s", datafiledir);
 
+    updateDB(3000000);
     readGroups();
     readUserDB();
 
@@ -857,6 +897,7 @@ int main(int argc, char *argv[])
     sprintf(TXbuffer,"ussp=%d",sleepWhenInactive);
     sendCommand(TXbuffer);
     sendCommand("thup=1");
+
 
     start=0;
     netIsActive[0]=0;

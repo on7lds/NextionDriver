@@ -33,29 +33,68 @@ name of the file with talkgroup number <-> name info
 The existence of the groups.txt file is also used for the calculation of free space.  
 This means: the free space that is sent to the display, is the free space
 of the partition where the groups.txt file is.  
-Without the groups.txt file, free space is not calculated.
+Without the groups.txt file, free space is calculated for the partition where 
+the configuration file resides.
 
+
+### GroupsFileSrc
+This gives the link where the groups file has to be fetched. It must be the complete
+link + filename, f.e. :
+```
+GroupsFileSrc=https://place.of.the.groupsfile/directory/where/groupfile.txt
+```
+This file will be fetched with `wget` and placed in the directory specified
+by `DataFilesPath` and named as specified by `GroupsFile`  
+When not specified, the groups file is fetched from BrandMeister.  
+**Note:**
+The `wget` program must be present on your system !
 
 ### DMRidFile
 the name of the file with user number <-> name info
 
+### DMRidFileSrc
+This gives the link where the DMRid file has to be fetched. It must be the complete
+link + filename, f.e. :
+```
+DMRidFileSrc=https://place.of.the.usersfile/directory/where/DMRid.csv
+```
+This file will be fetched with `wget` and placed in the directory specified
+by `DataFilesPath` and named as specified by `DMRidFile`  
+When not specified, the groups file is fetched from RadioID.  
+**Note:**
+The `wget` program must be present on your system !
+
+
+
 ### DMRidDelimiter
 the field delimiter character of the DMRis file  
 default:  
+```
 DMRidDelimiter=,
+```
 
 ### DMRidId, DMRidCall, DMRidName, DMRidX1, DMRidX2, DMRidX3
 
 which data fields to take from the DMRid file.  
 default :  
+```
 DMRidId=1  
 DMRidCall=2  
-DMRidName=3  
-DMRidX1=4  
-DMRidX2=5  
+DMRidName=3,4  
+DMRidX1=5  
+DMRidX2=6  
 DMRidX3=7  
+```
 
-The extra field (X1, X2, X3) are the extra data you want to display. This an be
+
+For the DMRidName field, it is possible to specify 2 fields that will be combined
+as a name :  
+```
+DMRidName=3,4  
+```
+This will use field 3 and add field 4 as name for the user.
+
+The extra field (X1, X2, X3) are the extra data you want to display. This can be
 city, region, country or city, state, country, or ...
 
 IMPORTANT:
@@ -84,6 +123,8 @@ send colors to show status of modes like pi-star
 show seconds counter while waiting for LAN and show ip address when LAN becomes active 
 (even before start of MMDVMHost)
 
+  
+  
 **Note:**  
 The NextionDriver will not execute commands from the display while waiting.
 They are buffered and executed when the waiting is over.

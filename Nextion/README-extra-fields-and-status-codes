@@ -28,7 +28,6 @@ cpuload : integer value of the system load in %
 t30 : Hotspot RX frequency (from MMDVM.ini)
 t31 : Hotspot location (from MMDVM.ini)
 t32 : Hotspot TX frequency (from MMDVM.ini)
-(Note : these are now sent by MMDVMHost)
 
 A* and N* when showModeStatus is active
 

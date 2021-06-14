@@ -19,27 +19,20 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.19"
-
-/* the code to extract RX and TX freq and location has been
-    included in MMDVMHost 20180910 and later, so
-    it is not necessary to do it with NextionDriver any more.
-
-    If you do want NextionDriver to handle these parameters,
-    uncomment the following line                                  */
-// #define XTRA
-
+#define NextionDriver_VERSION "1.20-beta"
 
 #define TRUE	1
 #define FALSE	0
 
 #define DEBUG	1
 
-#define NEXTIONPORT		"/dev/ttyAMA0"
+#define NEXTIONPORT		""
 #define NEXTIONDRIVERLINK	"/dev/ttyNextionDriver"
 #define CONFIGFILE		"/etc/MMDVM.ini"
 #define GROUPSFILE		"groups.txt"
-#define USERSFILE		"stripped.csv"
+#define GROUPSFILESRC		"https://api.brandmeister.network/v1.0/groups/"
+#define USERSFILE		"users.csv"
+#define USERSFILESRC		"https://www.radioid.net/static/user.csv"
 #define MAXGROUPS	2500
 #define MAXUSERS	200000
 
@@ -80,16 +73,14 @@ extern char ipaddr[100];
 extern int modeIsEnabled[20];
 extern int netIsActive[10];
 extern char groupsFile[100],usersFile[100];
+extern char groupsFileSrc[200],usersFileSrc[200];
 extern group_t groups[MAXGROUPS];
 extern user_t users[MAXUSERS];
 extern int nmbr_groups, nmbr_users;
 
-
-#ifdef XTRA
 extern unsigned int RXfrequency,TXfrequency;
 extern char location[90];
-#endif
-
+extern unsigned char tempInF;
 
 extern user_call_idx_t usersCALL_IDX[MAXUSERS];
 
@@ -99,6 +90,7 @@ extern char datafiledir[500];
 
 extern char nextionDriverLink[100];
 extern int verbose, screenLayout;
+extern char OSname[100],PIname[100];
 
 extern char nextionPort[100];
 extern char configFile[200];

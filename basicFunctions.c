@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017...2020 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 void basicFunctions() {
 
     char text[100];
+    char *p;
 
     if (strlen(TXbuffer)==0) return;
 
@@ -106,7 +107,7 @@ void basicFunctions() {
     }
 
     // if date/time is sent, check IP interface from time to time:
-    //   and disk free in %
+    //   and disk free in % and data files
     if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)) {
         getNetworkInterface(ipaddr);
         netIsActive[0]=getInternetStatus(check);
@@ -114,11 +115,14 @@ void basicFunctions() {
         check=0;
     }
     // check temp & CPU freq (also not too often)
-    if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==0)) {
+    if (page==0){
+        p=strstr(TXbuffer,"t2");
+        if (p==NULL) p=strstr(TXbuffer,"t3");
+        if ((p!=NULL)&&(p[7]==61)&&((p[2]&48)==48)) { TXbuffer[0]=0; return; }
+    }
+    if (((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==1))||(strstr(TXbuffer,"status.val=17")!=NULL)) {
         FILE *deviceInfoFile;
         double val;
-//see NextionDriver.h for info about defining the XTRA condition
-#ifdef XTRA
         //CPU temperature
         deviceInfoFile = fopen ("/sys/class/thermal/thermal_zone0/temp", "r");
         if (deviceInfoFile == NULL) {
@@ -126,18 +130,15 @@ void basicFunctions() {
         } else {
             fscanf (deviceInfoFile, "%lf", &val);
             val /= 1000;
-
-            sprintf(text, "t20.txt=\"%2.2f %cC\"", val, 176);
-            /*
-            If you live in one of the 5 countries (Bahamas, Belize, Cayman Islands,
-             Palau, US) where they use degrees F, you could comment the line above
-             and uncomment the following line :                                      */
-            //val=(val*1.8)+32;  sprintf(text, "t20.txt=\"%2.1f %cF\"", val, 176);
-
+            if (tempInF==0) {
+                sprintf(text, "t20.txt=\"%2.2f %cC\"", val, 176);
+            } else {
+                val=(val*1.8)+32;
+                sprintf(text, "t20.txt=\"%2.1f %cF\"", val, 176);
+            }
             fclose(deviceInfoFile);
         }
         sendCommand(text);
-#endif
 
        //CPU frequency
         deviceInfoFile = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", "r");
@@ -173,24 +174,22 @@ void basicFunctions() {
             sprintf(text, "t23.txt=\"%d\"",getDiskFree(FALSE));
         sendCommand(text);
 
-#ifdef XTRA
         //RXFrequency
         double fx;
         fx=RXfrequency;
         fx/=1000000;
-        sprintf(text, "t30.txt=\"%3.6fMHz\"",fx);
+        sprintf(text, "t30.txt=\"%3.6f\"",fx);
         sendCommand(text);
 
         //TXFrequency
         fx=TXfrequency;
         fx/=1000000;
-        sprintf(text, "t32.txt=\"%3.6fMHz\"",fx);
+        sprintf(text, "t32.txt=\"%3.6f\"",fx);
         sendCommand(text);
 
         //Location
         sprintf(text, "t31.txt=\"%s\"",location);
         sendCommand(text);
-#endif
 
         //disable 25356 text 46486
         //enable  1472  text 0
