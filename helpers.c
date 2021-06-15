@@ -158,7 +158,7 @@ void sanitize(char *line) {
     indexN=0;
 
     while (line[index]) {
-        if ((line[index]!='\'')&&(line[index]!='"')&&(line[index]!=0x0D)&&(line[index]!=0x0A)&&(line[index]!=',')) {
+        if ((line[index]!='\'')&&(line[index]!='"')&&(line[index]!=0x0D)&&(line[index]!=0x0A)) {
             new[indexN++]=line[index];
         }
         index++;
@@ -371,6 +371,7 @@ int readConfig(void) {
                 found++;
             }
             if (strcmp(key, "DMRidName") == 0) {
+                if (value[1]==',') { value[1]=value[2]; value[2]=0; }
                 userDBName=(unsigned int)atoi(value);
                 if ((userDBName<1)||(userDBName>99))userDBName=34;
                 found++;
@@ -444,6 +445,7 @@ void readVersions(char *filename) {
         if (strcasecmp(buffer,"PRETTY_NAME")==0) strcpy(OSname,val);
         if (strcasecmp(buffer,"version")==0)     strcpy(PIname,val);
     }
+    fclose(fp);
   }
 }
 
