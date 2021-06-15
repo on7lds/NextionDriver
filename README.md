@@ -8,7 +8,7 @@ Latest version : 1.20 (jun 2021)
 * shows frequency, temperature, location, ... even if MMDVMHost does not send them  
 * ability to update your users and groups files via a button on your display  
 * specify your preferred source for users and groups data  
-* separate first name and last name fiels in the users file can be combined to one name  
+* separate first name and last name fields in the users file can be combined to one name  
 * more info from the OS can be obtained (check the 'Sending commands' readme)  
   
 TAKE NOTE:  

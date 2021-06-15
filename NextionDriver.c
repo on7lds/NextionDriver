@@ -819,8 +819,8 @@ int main(int argc, char *argv[])
 
     strcpy(OSname,"OS unknown"); readVersions("/etc/os-release");
     writelog(2,"Running on %s",OSname);
-    strcpy(PIname,"Not Pi-Star"); readVersions("/etc/pistar-release");
-    if (strlen(PIname)>1) writelog(2,"Pi star v %s",OSname);
+    readVersions("/etc/pistar-release");
+    if (strlen(PIname)>1) writelog(2,"Pi-Star v %s",PIname); else { strcpy(PIname,"Not Pi-Star"); writelog(2,"%s",PIname); }
 
     //Open port ASAP to prevent issues on slow boards (like Pi Zero) -- thanks to KE7FNS
     writelog(2,"Opening ports");

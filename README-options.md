@@ -13,8 +13,9 @@ of the MMDVMHost ini file.
 specifies the port to which the Nextion display is connected 
 
 This could be (on linux) :
-- /dev/AMA0
+- /dev/ttyAMA0
 - /dev/ttyUSB0
+- modem
 - ...
 
 ### LogLevel

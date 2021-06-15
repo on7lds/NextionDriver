@@ -158,7 +158,8 @@ void sanitize(char *line) {
     indexN=0;
 
     while (line[index]) {
-        if ((line[index]!='\'')&&(line[index]!='"')&&(line[index]!=0x0D)&&(line[index]!=0x0A)) {
+        if ((line[index]!='\'')&&(line[index]!='"')&&(line[index]!=0x0D)&&(line[index]!=0x0A)
+            &&(!((line[index]==' ')&&(line[index+1]=='=')))&&(!((index>1)&&(line[index]==' ')&&(line[index-1]=='='))) ) {
             new[indexN++]=line[index];
         }
         index++;
@@ -433,6 +434,7 @@ int readConfig(void) {
 void readVersions(char *filename) {
   char buffer[102], *val;
 
+//  printf("--- File  [%s]\n",filename);
   FILE* fp = fopen(filename, "rt");
   if (fp != NULL) {
     while (fgets(buffer, 100, fp) != NULL) {
@@ -441,9 +443,9 @@ void readVersions(char *filename) {
         if (val==NULL) continue;
         val[0]=0; val++;
 //        printf("Key [%s]\n",buffer);
-//        printf("Val [%s]\n",val);
-        if (strcasecmp(buffer,"PRETTY_NAME")==0) strcpy(OSname,val);
-        if (strcasecmp(buffer,"version")==0)     strcpy(PIname,val);
+//        printf("Val [%s]\n\n",val);
+        if (strcmp(buffer,"PRETTY_NAME")==0) { strcpy(OSname,val); }
+        if (strcmp(buffer,"Version")==0)     { strcpy(PIname,val); }
     }
     fclose(fp);
   }
