@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2017,2021 by Lieven De Samblanx ON7LDS
+ *   Copyright (C) 2017...2021 by Lieven De Samblanx ON7LDS
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -172,13 +173,27 @@ void sanitize(char *line) {
 
 
 
+void initConfig(void) {
+    int i;
 
-int readConfig(void) {
-    #define BUFFER_SIZE 200
-    int i,found,ok;
+    strcpy(nextionDriverLink,NEXTIONDRIVERLINK);
+    strcpy(nextionPort,NEXTIONPORT);
+    strcpy(configFile1,CONFIGFILE);
+    strcpy(configFile2,"");
+    strcpy(groupsFile,GROUPSFILE);
+    strcpy(usersFile,USERSFILE);
+    strcpy(groupsFileSrc,GROUPSFILESRC);
+    strcpy(usersFileSrc,USERSFILESRC);
 
-    ok=0;
-    found=0;
+    screenLayout=2;
+
+    userDBDelimiter=',';
+    userDBId=0;
+    userDBCall=1;
+    userDBName=34;  // fields 2 and 3
+    userDBX1=4;
+    userDBX2=5;
+    userDBX3=6;
 
     RXfrequency=0;
     TXfrequency=0;
@@ -195,12 +210,29 @@ int readConfig(void) {
     usersFile[0]=0;
     changepages=0;
 
-
     for (i=0; i<7; i++) modeIsEnabled[i]=0;
+}
+
+
+
+int readConfig(int filenr) {
+    #define BUFFER_SIZE 200
+    int found,ok;
+    char configFile[200];
+
+    ok=0;
+    found=0;
+
+    strcpy(configFile,"");
+    if (filenr==1) strcpy(configFile,configFile1);
+    if (filenr==2) strcpy(configFile,configFile2);
+
+    if (strlen(configFile)==0) return 1;
+    writelog(LOG_NOTICE,"Reading configuration file %s",configFile);
 
     FILE* fp = fopen(configFile, "rt");
     if (fp == NULL) {
-        return 3;
+        return -100-filenr;
     }
 
     changepages=0;
@@ -341,7 +373,7 @@ int readConfig(void) {
             if (strcmp(key, "GroupsFileSrc") == 0) {
                 strncpy(groupsFileSrc,value,sizeof(groupsFileSrc)-1);
                 groupsFileSrc[sizeof(groupsFileSrc)-1]=0;
-                writelog(LOG_NOTICE,"Groups file wiil be fetched from [%s]",groupsFileSrc);
+                writelog(LOG_NOTICE,"Groups file will be fetched from [%s]",groupsFileSrc);
                 found++;
             }
             if (strcmp(key, "DMRidFile") == 0) {
@@ -351,7 +383,7 @@ int readConfig(void) {
             if (strcmp(key, "DMRidFileSrc") == 0) {
                 strncpy(usersFileSrc,value,sizeof(usersFileSrc)-1);
                 usersFileSrc[sizeof(usersFileSrc)-1]=0;
-                writelog(LOG_NOTICE,"Users file wiil be fetched from [%s]",usersFileSrc);
+                writelog(LOG_NOTICE,"Users file will be fetched from [%s]",usersFileSrc);
                 found++;
             }
             //----- Users -----
@@ -421,13 +453,10 @@ int readConfig(void) {
     fclose(fp);
 
     if (found == 0) {
-        writelog(LOG_ERR,"Found no data in the config file %s. Exiting.\n", configFile);
-        exit(EXIT_FAILURE);
+        writelog(LOG_ERR,"Found no data in config file %s.\n", configFile);
     }
 
-    if (strlen(nextionPort)==0) return 2;
-
-    return 0;
+    return found;
 }
 
 
@@ -463,7 +492,7 @@ int getDiskFree(int log){
   ok = statfs( fname, &sStats );
   if (ok==-1) {
     writelog(LOG_ERR,"No groups file found (%s), trying config file to calculate disk size",fname);
-    ok = statfs( configFile , &sStats );
+    ok = statfs( configFile1 , &sStats );
   }
 
   if( ok == -1 ) {
@@ -525,7 +554,7 @@ int getMeminfo(char* info) {
     if ( token != NULL ) {
       token = strtok(NULL, s);
     }
-    for(i=0; i<20; i++) { printf("===%d [%c][%s]\n",i,token[0],token); if (token[0]==0x20) token++; else break; }
+    for(i=0; i<20; i++) { if (token[0]==0x20) token++; else break; }
     sprintf(info, "%s", token );
     free(line);
     fclose(fp);
@@ -546,10 +575,12 @@ unsigned char LHinhibit;
 void addLH(char* displaydatabuf ) {
     int i,f,field, test1, test2;
     char* split;
-    char displaydata[1000];
+    char displaydata[1024];
 
+    if (displaydatabuf==NULL) return;
     if ((displaydatabuf[0]=='L')&&(displaydatabuf[1]=='H'))return;
     strcpy(displaydata,displaydatabuf);
+    displaydata[99]=0;
     writelog(LOG_DEBUG,"  LH: check [%s] on page %d",displaydata,page);
     if ((page<0)||(page>=LH_PAGES)) { writelog(LOG_ERR,"LH: nonexistent page"); return; }
 
@@ -559,7 +590,6 @@ void addLH(char* displaydatabuf ) {
         statusval=atoi(split);
         return;
     }
-
 
     split=strstr(displaydata,".txt=");
     if (split==NULL) { return; }
@@ -605,6 +635,7 @@ void addLH(char* displaydatabuf ) {
         startdata[page]++;
 //												if (page>0)printf("-----------New index !-----------\n");
     }
+
     if (startdata[page]>=LH_INDEXES) startdata[page]=1;
     i=startdata[page];
     if ((page==0)||(test1)){ for (f=0;f<LH_FIELDS;f++) strncpy(data[page][f][i],data[page][f][0],99); strcpy(data[page][f][0],""); statusval=0; }
@@ -922,9 +953,27 @@ void readGroups(void){
 }
 
 
+void convertStoDHMS(long int age,char * DHMS) {
+    int temp;
+
+    if (age>INT_MAX) age=INT_MAX;
+    temp=age/86400;
+    sprintf(DHMS,"%d days",temp);
+    if (temp>2) return;
+    temp=age/3600;
+    sprintf(DHMS,"%d hour",temp);
+    if (temp>2) return;
+    temp=age/60;
+    sprintf(DHMS,"%d min",temp);
+    if (temp>2) return;
+    sprintf(DHMS,"%d s",temp);
+}
+
+
+
 void updateDB(int age) {
     struct stat attr;
-    char fname[250], cmd[550],text[120],tmp[100],dt[50];
+    char fname[250], cmd[550],text[120],tmp[100],dt[50],unit[20];
     int ok;
 
     time_t nu = time(NULL);
@@ -938,21 +987,30 @@ void updateDB(int age) {
         writelog(LOG_ERR,tmp);
     } else {
         strftime(dt, 50, "%Y-%m-%d %H:%M:%S", localtime(&attr.st_mtime));
-        sprintf(tmp," Groups file : %s (%ld s old)",dt,nu-attr.st_mtime);
+        convertStoDHMS(nu-attr.st_mtime,unit);
+        sprintf(tmp," Groups file : %s (%s old)",dt,unit);
         writelog(LOG_NOTICE,tmp);
     }
-    if (age>0)
+    if (age>0) {
       if ((ok!=0)||(nu-attr.st_mtime>age)) {
+        sprintf(text, "msg1.txt=\"Updating ...\"");
+        sendCommand(text);
         if (strcmp(groupsFileSrc,GROUPSFILESRC)!=0) writelog(LOG_NOTICE," Fetching groups from %s",groupsFileSrc);
         sprintf(cmd, "wget %s -O /tmp/groups >/dev/null 2>&1 && touch /tmp/groups && mv /tmp/groups %s",groupsFileSrc,fname);
         ok=system(cmd);
         if (ok!=0) {
+            sprintf(text, "msg.txt=\"Groups file update failed.\"");
+            sendCommand(text);
             sprintf(tmp," ERROR: Groups file update failed (%d)",ok);
             writelog(LOG_ERR,tmp);
         } else {
             sprintf(tmp," Groups file downloaded");
             writelog(LOG_NOTICE,tmp);
         }
+      } else {
+        sprintf(text, "msg.txt=\"Files too young. Not updating.\"");
+        sendCommand(text);
+      }
     }
     sprintf(text, "msg1.txt=\"%s\"",tmp);
     if (age<3000000) sendCommand(text);
@@ -965,7 +1023,8 @@ void updateDB(int age) {
         writelog(LOG_ERR,tmp);
     } else {
         strftime(dt, 50, "%Y-%m-%d %H:%M:%S", localtime(&attr.st_mtime));
-        sprintf(tmp," Users file : %s (%ld s old)",dt,nu-attr.st_mtime);
+        convertStoDHMS(nu-attr.st_mtime,unit);
+        sprintf(tmp," Users file : %s (%s old)",dt,unit);
         writelog(LOG_NOTICE,tmp);
     }
     if (age>0)
@@ -1171,7 +1230,7 @@ int openTalkingSocket(void) {
 
 int sendTransparentData(int display,char* msg) {
 
-    if (transparentIsEnabled==0) return 0;
+    if ((transparentIsEnabled==0)||(display_TXsock<1)) return 0;
 
     char content[100];
 
@@ -1180,7 +1239,8 @@ int sendTransparentData(int display,char* msg) {
 
     writelog(LOG_DEBUG," NET: %s",msg);
 
-    strcpy(&content[1],msg);
+    strncpy(&content[1],msg,95);
+    content[95]=0;
     strcat(content,"\xff\xff\xff");
 
     if (sendto(display_TXsock,content,strlen(content),0, display_addr->ai_addr,display_addr->ai_addrlen)==-1) {

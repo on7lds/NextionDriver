@@ -120,7 +120,7 @@ void basicFunctions() {
         if (p==NULL) p=strstr(TXbuffer,"t3");
         if ((p!=NULL)&&(p[7]==61)&&((p[2]&48)==48)) { TXbuffer[0]=0; return; }
     }
-    if (((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check%8==1))||(strstr(TXbuffer,"status.val=17")!=NULL)) {
+    if (((page==0)&&(strstr(TXbuffer,"t2.txt=")!=NULL)&&(check%8==1))||(strstr(TXbuffer,"status.val=17")!=NULL)) {
         FILE *deviceInfoFile;
         double val;
         //CPU temperature

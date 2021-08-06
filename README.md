@@ -4,16 +4,15 @@ NextionDriver (for MMDVMHost) by ON7LDS
 Find the last version on https://github.com/on7lds/
 
 ```
-Latest version : 1.20 (jun 2021)
-* shows frequency, temperature, location, ... even if MMDVMHost does not send them  
-* ability to update your users and groups files via a button on your display  
-* specify your preferred source for users and groups data  
-* separate first name and last name fields in the users file can be combined to one name  
-* more info from the OS can be obtained (check the 'Sending commands' readme)  
-  
+Latest version : 1.21 (aug 2021)
+* split contfiguration files :  
+  it is possible (but not manadtory) to move all [NextionDriver] settings  
+  to a separate configuration file (use the -C option for this new file)  
+* minor corrections
+
 TAKE NOTE:  
   the default filename or the users file (DMRidFile)  
-  is changed from stripped.csv to users.csv !
+  is changed from stripped.csv to users.csv as of V1.20!
 ```
 
   

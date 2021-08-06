@@ -84,3 +84,9 @@ On the DMR screen, the current *and* the previous user are displayed
    fields at call end.
 
 
+
+NX4832K035-Model_10_V1.05b_ON7LDS.HMI
+-------------------------------------
+Based on Model 10 of PD0DIB
+Shows *a lot* of information
+Needs NextionDriver V1.20 to use all functionality

@@ -19,20 +19,21 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.20"
+#define NextionDriver_VERSION "1.21"
 
 #define TRUE	1
 #define FALSE	0
 
 #define DEBUG	1
 
-#define NEXTIONPORT		""
-#define NEXTIONDRIVERLINK	"/dev/ttyNextionDriver"
-#define CONFIGFILE		"/etc/MMDVM.ini"
-#define GROUPSFILE		"groups.txt"
-#define GROUPSFILESRC		"https://api.brandmeister.network/v1.0/groups/"
-#define USERSFILE		"users.csv"
-#define USERSFILESRC		"https://www.radioid.net/static/user.csv"
+#define NEXTIONPORT			""
+#define NEXTIONDRIVERLINK		"/dev/ttyNextionDriver"
+#define CONFIGFILE			"/etc/MMDVM.ini"
+#define CONFIGFILE_NEXTIONDRIVER	"/etc/NextionDriver.ini"
+#define GROUPSFILE			"groups.txt"
+#define GROUPSFILESRC			"https://api.brandmeister.network/v1.0/groups/"
+#define USERSFILE			"users.csv"
+#define USERSFILESRC			"https://www.radioid.net/static/user.csv"
 #define MAXGROUPS	2500
 #define MAXUSERS	200000
 
@@ -42,6 +43,7 @@
 #define BAUDRATE3	B9600
 #define BAUDRATE4	B115200
 
+#define SERBUFSIZE 	1024
 
 typedef struct groupdata
 {
@@ -93,7 +95,7 @@ extern int verbose, screenLayout;
 extern char OSname[100],PIname[100];
 
 extern char nextionPort[100];
-extern char configFile[200];
+extern char configFile1[200],configFile2[200];
 
 extern char userDBDelimiter;
 extern int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;

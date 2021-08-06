@@ -42,7 +42,8 @@
 void getNetworkInterface(char* info);
 int getInternetStatus(int);
 pid_t proc_find(const char* name);
-int readConfig(void);
+void initConfig(void);
+int readConfig(int);
 void addLH(char*);
 void sendScreenData(unsigned int);
 void LHlist(int,int);
