@@ -35,7 +35,7 @@
 #define USERSFILE			"users.csv"
 #define USERSFILESRC			"https://www.radioid.net/static/user.csv"
 #define MAXGROUPS	2500
-#define MAXUSERS	200000
+#define MAXUSERS	250000
 
 #define MODEM_DISPLAY 0
 #define MMDVM_DISPLAY 1
