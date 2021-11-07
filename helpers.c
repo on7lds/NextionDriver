@@ -430,22 +430,28 @@ int readConfig(int filenr) {
             //----- ----- -----
             if (strcmp(key, "ChangePagesMode") == 0) {
                 changepages = (unsigned int)atoi(value);
+                writelog(LOG_NOTICE,"ChangePagesMode: %s", changepages ? "ON" : "OFF");
                 found++;
             }
             if (strcmp(key, "RemoveDim") == 0) {
                 removeDim = (unsigned int)atoi(value);
+                writelog(LOG_NOTICE,"RemoveDim: %s", removeDim ? "ON" : "OFF");
                 found++;
             }
             if (strcmp(key, "SleepWhenInactive") == 0) {
                 sleepWhenInactive = (unsigned int)atoi(value);
+                writelog(LOG_NOTICE,"SleepWhenInactive: %s", sleepWhenInactive ? "ON" : "OFF");
                 found++;
             }
+
             if (strcmp(key, "ShowModesStatus") == 0) {
                 showModesStatus = (unsigned int)atoi(value);
+                writelog(LOG_NOTICE,"ShowModesStatus: %s", showModesStatus ? "ON" : "OFF");
                 found++;
             }
             if (strcmp(key, "WaitForLan") == 0) {
                 waitForLan = (unsigned int)atoi(value);
+                writelog(LOG_NOTICE,"WaitForLan: %s", waitForLan ? "ON" : "OFF");
                 found++;
             }
         }
