@@ -103,6 +103,30 @@ Each line in the DMRid file has to contain 2 .. 9 fields (more will not be read)
 The absolute minimum is, of course, DMRid and call.
 
 
+### SendUserDataMask
+Choose for which pages all user data (if found) is sent.  
+Set the bit for the corresponding page :
+0b00000001 DStar  
+0b00000010 DMR  
+0b00000100 YSF  
+0b00001000 P25  
+0b00010000 NXDN  
+0b00100000 POCSAG  
+0b01000000 M17  
+  
+Numbers may be specified as binary (0b...) or hexadecimal (0x...)  
+Default is DMR only : 0b00000010 (binary) or 0x2 (hex).  
+  
+For example : DMR + YFS :  
+```
+SendUserDataMask=0b00000110
+```
+or (this is the same)  
+```
+SendUserDataMask=0x6
+```
+
+
 ### RemoveDim
 if set to 1, the 'dim' commands are not passed to the display.
 So MMDVMHost does not set the display backlight any more. You can do it yourself

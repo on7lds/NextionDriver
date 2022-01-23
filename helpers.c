@@ -239,6 +239,7 @@ int readConfig(int filenr) {
     removeDim=0;
     sleepWhenInactive=60;
     waitForLan=1;
+    sendUserDataMask=0b00000010;
 
     char buffer[BUFFER_SIZE];
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
@@ -449,6 +450,12 @@ int readConfig(int filenr) {
                 writelog(LOG_NOTICE,"ShowModesStatus: %s", showModesStatus ? "ON" : "OFF");
                 found++;
             }
+            if (strcmp(key, "SendUserDataMask") == 0) {
+                int base; if ((value[1]!=0)&&(value[1]=='b')) { base=2; value[0]=' ', value[1]=' '; } else { base=0; }
+                sendUserDataMask = (unsigned int)strtol(value, NULL, base);
+                writelog(LOG_NOTICE,"SendUserDataMask: %d %s | 0x%X", base, value, sendUserDataMask);
+                found++;
+            }
             if (strcmp(key, "WaitForLan") == 0) {
                 waitForLan = (unsigned int)atoi(value);
                 writelog(LOG_NOTICE,"WaitForLan: %s", waitForLan ? "ON" : "OFF");
@@ -461,7 +468,6 @@ int readConfig(int filenr) {
     if (found == 0) {
         writelog(LOG_ERR,"Found no data in config file %s.\n", configFile);
     }
-
     return found;
 }
 

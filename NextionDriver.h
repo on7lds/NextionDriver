@@ -69,7 +69,7 @@ typedef struct user_idx_data{
 extern char TXbuffer[1024],RXbuffer[1024];
 
 extern long sleepTimeOut;
-extern int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
+extern int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan,sendUserDataMask;
 extern int check;
 extern char ipaddr[100];
 extern int modeIsEnabled[20];

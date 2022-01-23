@@ -57,7 +57,7 @@ char OSname[100],PIname[100];
 
 int gelezen,check;
 unsigned char inhibit;
-int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan;
+int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan,alwasSendUserData,sendUserDataMask;
 char userDBDelimiter;
 int userDBId,userDBCall,userDBName,userDBX1,userDBX2,userDBX3;
 long sleepTimeOut;

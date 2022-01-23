@@ -296,7 +296,7 @@ void basicFunctions() {
 
 
     //send user data if found (Slot 1)
-    if ((page==2)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+    if ((page&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);
@@ -345,7 +345,7 @@ void basicFunctions() {
         sendCommand("click S0,1");
     }
     //send user data if found (Slot 2)
-    if ((page==2)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+    if ((page&sendUserDataMask)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);

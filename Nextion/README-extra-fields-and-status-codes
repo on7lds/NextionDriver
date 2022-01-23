@@ -39,6 +39,7 @@ status code 24 will be sent once after sending these values
 DMR
 t8 : TG name
 
+Depending on SendUserDataMask (default: DMR page only)
 t13: user data field 1
 t14: user data field 2
 t15: user data field 3
