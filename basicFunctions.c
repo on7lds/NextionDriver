@@ -294,8 +294,10 @@ void basicFunctions() {
         sendCommand(TXbuffer);
     }
 
+    const char showOn[] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x00, 0x00, 0x0, 0x0, 0x0, 0x0, 0x0 };
+
     //send user data if found (Slot 1)
-    if (((1<<page)&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+    if ((showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);
@@ -344,7 +346,7 @@ void basicFunctions() {
         sendCommand("click S0,1");
     }
     //send user data if found (Slot 2)
-    if ((2&(1<<page)&sendUserDataMask)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+    if ((2&showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);

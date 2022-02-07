@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.24"
+#define NextionDriver_VERSION "1.25"
 
 #define TRUE	1
 #define FALSE	0
