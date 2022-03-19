@@ -296,13 +296,62 @@ void basicFunctions() {
 
     const char showOn[] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x00, 0x00, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
-    //send user data if found (Slot 1)
-    if ((showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+    //send user data if found (Non DMR)
+    if ((page!=2)&&(showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
         sendCommand(TXbuffer);
 
         user=0;
+        nr=atoi(&TXbuffer[10]);
+        if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
+        if (nr>0) {
+            user=search_user_index_for_ID(nr,users,0,nmbr_users-1);
+            writelog(LOG_DEBUG,"- Found user [%s] for ID %d",users[user].data1,nr);
+            sprintf(text,"ID %d",nr);
+        } else if (strstr(TXbuffer,"Listening")==NULL) {
+            TXbuffer[strlen(TXbuffer)-1]=' ';
+            char* l=strchr(&TXbuffer[10], ' ');
+            if (l!=NULL) l[0]=0;
+            writelog(LOG_INFO,"Search for call [%s] \n",&TXbuffer[10]);
+            user=search_user_index_for_CALL(&TXbuffer[10],usersCALL_IDX,0,nmbr_users-1);
+            writelog(LOG_INFO,"- Found user [%s] for CALL %s",users[user].data1,&TXbuffer[10]);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+            TXbuffer[24]=0;
+            strncpy(text,&TXbuffer[10],99);
+#pragma GCC diagnostic pop
+        }
+        if (user>=0) {
+            sprintf(TXbuffer,"t18.txt=\"%s\"",users[user].data1);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t19.txt=\"%s\"",users[user].data2);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t20.txt=\"%s\"",users[user].data3);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t21.txt=\"%s\"",users[user].data4);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t22.txt=\"%s\"",users[user].data5);
+            sendCommand(TXbuffer);
+        } else {
+            sprintf(TXbuffer,"t18.txt=\"DMRID %s\"",text);
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t19.txt=\"Not found in\"");
+            sendCommand(TXbuffer);
+            sprintf(TXbuffer,"t20.txt=\"%s\"",usersFile);
+            sendCommand(TXbuffer);
+        }
+        sprintf(text, "MMDVM.status.val=68");
+        sendCommand(text);
+        sendCommand("click S0,1");
+    }
+    //send user data if found (DMR Slot 1)
+    if ((2&showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t0.txt")!=NULL)&&(TXbuffer[8]!='"')) {
+        int nr,user;
+
+        sendCommand(TXbuffer);
+
+        user=0; text[0]=0;
         nr=atoi(&TXbuffer[12]);
         if (nr<1000000) nr=0;  //only real ID (not 2E0... callsigns) - thanks KE7FNS
         if (nr>0) {
@@ -334,7 +383,7 @@ void basicFunctions() {
             sprintf(TXbuffer,"t22.txt=\"%s\"",users[user].data5);
             sendCommand(TXbuffer);
         } else {
-            sprintf(TXbuffer,"t18.txt=\"DMRID %s\"",text);
+            sprintf(TXbuffer,"t18.txt=\"User %s\"",text);
             sendCommand(TXbuffer);
             sprintf(TXbuffer,"t19.txt=\"Not found in\"");
             sendCommand(TXbuffer);
@@ -345,7 +394,7 @@ void basicFunctions() {
         sendCommand(text);
         sendCommand("click S0,1");
     }
-    //send user data if found (Slot 2)
+    //send user data if found (DMR Slot 2)
     if ((2&showOn[page&0x0F]&sendUserDataMask)&&(strstr(TXbuffer,"t2.txt")!=NULL)&&(TXbuffer[8]!='"')) {
         int nr,user;
 
