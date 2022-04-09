@@ -114,6 +114,12 @@ void basicFunctions() {
         sprintf(TXbuffer, "t3.txt=\"%s\"", ipaddr);
         check=0;
     }
+    // Send Mode to screen on t35.txt
+    if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)&&(modestr!=NULL)) {
+            sprintf(text,"t35.txt=\"%s\"",modestr);
+            sendCommand(text);
+     }
+
     // check temp & CPU freq (also not too often)
     if (page==0){
         p=strstr(TXbuffer,"t2");
