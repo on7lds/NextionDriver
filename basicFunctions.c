@@ -32,6 +32,8 @@
 #include "helpers.h"
 #include "basicFunctions.h"
 
+char *modestr="";
+
 void basicFunctions() {
 
     char text[100];
@@ -55,24 +57,30 @@ void basicFunctions() {
         }
         if (strcmp(TXbuffer,"page MMDVM")==0) {
             page=0;
-        }
+        }   
         if (strcmp(TXbuffer,"page DStar")==0) {
             page=1;
+            modestr="DStar";
         }
         if (strcmp(TXbuffer,"page DMR")==0) {
             page=2;
+            modestr="DMR";
         }
         if (strcmp(TXbuffer,"page YSF")==0) {
             page=3;
+            modestr="YSF";
         }
         if (strcmp(TXbuffer,"page P25")==0) {
             page=4;
+            modestr="P25";
         }
         if (strcmp(TXbuffer,"page NXDN")==0) {
             page=5;
+            modestr="NXDN";
         }
         if (strcmp(TXbuffer,"page POCSAG")==0) {
             page=6;
+            modestr="POCSAG";
         }
     }
 
@@ -105,6 +113,12 @@ void basicFunctions() {
             return;
         }
     }
+
+    // Send Mode for MMDVM screen on t35.txt
+    if ((page==0)&&(strstr(TXbuffer,"t2.txt=")>0)&&(check++>100)&&(modest$
+       sprintf(text,"t35.txt=\"%s\"",modestr);
+       sendCommand(text);
+     }
 
     // if date/time is sent, check IP interface from time to time:
     //   and disk free in % and data files
