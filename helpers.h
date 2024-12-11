@@ -26,12 +26,14 @@
 #define C_P25		5
 #define C_NXDN		6
 #define C_POCSAG	7
+#define C_M17		8
 #define C_DSTARNET	11
 #define C_DMRNET	12
 #define C_YSFNET	13
 #define C_YSFDMRNET	14
 #define C_P25NET	15
 #define C_NXDNNET	16
+#define C_M17NET	17
 
 #define C_INFO		20
 #define C_NEXTION	21
