@@ -257,6 +257,8 @@ int readConfig(int filenr) {
             if (strncmp(buffer, "[P25]", 5) == 0)                ok=C_P25;
             if (strncmp(buffer, "[NXDN]", 6) == 0)               ok=C_NXDN;
             if (strncmp(buffer, "[POCSAG]", 6) == 0)             ok=C_POCSAG;
+            if (strncmp(buffer, "[M17]", 6) == 0)             	 ok=C_M17;
+            if (strncmp(buffer, "[M17 Network]", 13) == 0)       ok=C_M17NET;
             if (strncmp(buffer, "[D-Star Network]", 16) == 0)    ok=C_DSTARNET;
             if (strncmp(buffer, "[DMR Network]", 13) == 0)       ok=C_DMRNET;
             if (strncmp(buffer, "[System Fusion Network]", 23) == 0) ok=C_YSFNET;
@@ -575,7 +577,7 @@ int getMeminfo(char* info) {
 
 
 
-#define LH_PAGES 	7
+#define LH_PAGES 	8
 #define LH_INDEXES 	20
 #define LH_FIELDS 	40
 

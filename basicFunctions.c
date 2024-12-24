@@ -74,6 +74,9 @@ void basicFunctions() {
         if (strcmp(TXbuffer,"page POCSAG")==0) {
             page=6;
         }
+        if (strcmp(TXbuffer,"page M17")==0) {
+            page=7;
+        }
     }
 
     if ((strncmp(TXbuffer,"page ",5)==0)&&(changepages==1)) {
@@ -234,6 +237,9 @@ void basicFunctions() {
     //        sprintf(text, "N5.pco=%d",(modeIsEnabled[C_YSFDM_NET]&&(proc_find("")>0) ?  pcoEN : pcoDIS)); sendCommand(text);
             sprintf(text, "N6.bco=%d",(modeIsEnabled[C_NXDNNET]&&(proc_find("MMDVMHost")>0)) ?  bcoEN : bcoDIS); sendCommand(text);
             sprintf(text, "N6.pco=%d",(modeIsEnabled[C_NXDNNET]&&(proc_find("MMDVMHost")>0)) ?  pcoEN : pcoDIS); sendCommand(text);
+            sprintf(text, "N7.bco=%d",(modeIsEnabled[C_M17NET]&&(proc_find("M17Gateway")>0)) ?  bcoEN : bcoDIS); sendCommand(text);
+            sprintf(text, "N7.pco=%d",(modeIsEnabled[C_M17NET]&&(proc_find("M17Gateway")>0)) ?  pcoEN : pcoDIS); sendCommand(text);
+
 
         }
         //Done
@@ -241,7 +247,6 @@ void basicFunctions() {
         sendCommand(text);
         sendCommand("click S0,1");
     }
-
 
     //send TG name if found (Slot 1)
     if ((page==2)&&(strstr(TXbuffer,"t1.txt")!=NULL)&&(TXbuffer[8]!='"')) {

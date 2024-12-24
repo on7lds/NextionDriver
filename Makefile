@@ -13,3 +13,6 @@ NextionDriver:
 
 clean:
 		$(RM) NextionDriver *.o *.d *.bak *~
+
+install:
+		install -m 755 NextionDriver /usr/local/bin/
