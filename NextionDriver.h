@@ -19,7 +19,7 @@
 #if !defined(NextionDriver_H)
 #define NextionDriver_H
 
-#define NextionDriver_VERSION "1.26"
+#define NextionDriver_VERSION "1.27"
 
 #define TRUE	1
 #define FALSE	0
@@ -66,7 +66,7 @@ typedef struct user_idx_data{
 	int nr;
 } user_call_idx_t;
 
-extern char TXbuffer[1024],RXbuffer[1024];
+extern char TXbuffer[1024],RXbuffer[1048];
 
 extern long sleepTimeOut;
 extern int page,statusval,changepages,removeDim,sleepWhenInactive,showModesStatus,waitForLan,sendUserDataMask;

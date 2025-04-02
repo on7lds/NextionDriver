@@ -29,12 +29,12 @@
 //============================================================================
 void processButtons(unsigned char code) {
 
+
 char buf[1200];
 
-    //See the README file for how to define a button on the Nextion Display
-
-    sprintf(buf, "msg.txt=\"Button pressed %d (%s)\"",  code, RXbuffer);
+//   sprintf(buf, "msg.txt=\"Button pressed %d (%s)\"",  code, RXbuffer);
+   sprintf(buf, "msg.txt=\"Button pressed %d\"",  code );
     sendCommand(buf);
-
+    
 }
 

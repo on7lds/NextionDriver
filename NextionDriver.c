@@ -85,7 +85,7 @@ int netIsActive[10];
 int transparentIsEnabled,sendFrameType;
 char remotePort[10],localPort[10];
 
-char TXbuffer[1024],RXbuffer[1024];
+char TXbuffer[1024],RXbuffer[1048];
 
 char* RGBtoNextionColor(int RGB);
 void sendCommand(char *cmd);
@@ -99,6 +99,49 @@ char sockRXbuffertemp[1024];
 
 int open_nextion_serial_port(char* devicename, long BAUD);
 
+// Base64 encoding table
+static const char base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// Function to encode a string to Base64
+static void base64_encode(const unsigned char *input, int len, char *output) {
+    int i = 0, j = 0;
+    unsigned char char_array_3[3], char_array_4[4];
+
+    while (len--) {
+        char_array_3[i++] = *(input++);
+        if (i == 3) {
+            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+            char_array_4[3] = char_array_3[2] & 0x3f;
+
+            for (i = 0; i < 4; i++) {
+                output[j++] = base64_table[char_array_4[i]];
+            }
+            i = 0;
+        }
+    }
+
+    if (i) {
+        for (int k = i; k < 3; k++) {
+            char_array_3[k] = '\0';
+        }
+
+        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+        char_array_4[3] = char_array_3[2] & 0x3f;
+
+        for (int k = 0; k < i + 1; k++) {
+            output[j++] = base64_table[char_array_4[k]];
+        }
+
+        while (i++ < 3) {
+            output[j++] = '=';
+        }
+    }
+    output[j] = '\0';
+}
 
 
 // this function tranforms RGB to nextion 5/6/5 bit
@@ -324,142 +367,202 @@ void updateDisplay(void) {
 
 }
 
-
 void handleButton(int received) {
-    char code, text[150],info[100], *cmd;
-    int response,resNmbr, ok;
-    FILE *ls;
+    char text[150], info[100], *cmd;  // Added info and cmd
+    int i, response = 0, resNmbr, ok; // Added response, resNmbr, and ok
+    FILE *ls;                         // Added ls for popen
+    char code;                        // Added code
 
-    response=0;
-    if (received>1) {
-        {
-            sprintf(text,"RX: %d (",received);
-            int i;
-            for (i=0; i<received; i++) {
-                sprintf(&text[strlen(text)], "%02X ",RXbuffer[i]);
-            }
-            sprintf(&text[strlen(text)], ")");
-            writelog(LOG_DEBUG,text);
+    if (received > 1) {
+        // Log the raw received data
+        sprintf(text, "RX: %d (", received);
+        for (i = 0; i < received; i++) {
+            sprintf(&text[strlen(text)], "%02X ", RXbuffer[i]);
         }
-        if (RXbuffer[0]==42) {
-            if (received==3) writelog(LOG_NOTICE,"Received command 0x%02X/%d",RXbuffer[1],RXbuffer[2]);
-                else writelog(LOG_NOTICE,"Received command 0x%02X",RXbuffer[1]);
-            if (RXbuffer[1]>0xEF) {
-                if ((RXbuffer[1]==0xFE)&&(received==3)){
-                    sendScreenData(RXbuffer[2]);
-                } else 
-                if ((RXbuffer[1]==0xFD)&&(received==4)){
-                    LHlist(RXbuffer[2],RXbuffer[3]);
-                } else
-                if ((RXbuffer[1]==0xFC)&&(received==3)){
-                    if (RXbuffer[2]==2) {
-                        if (DisplayInfo[3][0]==0) {
-                            sprintf(text, "msg1.txt=\"Model Unknown\"");
-                            sendCommand(text);
-                            sprintf(text, "msg2.txt=\"\"");
-                            sendCommand(text);
-                        } else {
-                            sprintf(text, "msg1.txt=\"%s\"",DisplayInfo[3]);
-                            sendCommand(text);
-                            sprintf(text, "msg2.txt=\"%s\"",DisplayInfo[6]);
-                            sendCommand(text);
-                        }
-                    } else {
-                        inhibit=RXbuffer[2];
-                        if (inhibit==0xFE) inhibit=0;
-                        writelog(LOG_DEBUG,"Inhibit=%d",inhibit);
-                    }
-                    response=RXbuffer[1];
-                } else
-                if (RXbuffer[1]==0xFB){
-                    if (received==2) updateDisplay(); // else writelog(LOG_NOTICE," index %d",RXbuffer[2]);
-                    if (received==3) {
-                        if (RXbuffer[2]==1) { writelog(LOG_NOTICE,"Updating users/Groups ..."); updateDB(86400); }
-                        if (RXbuffer[2]==2) { updateDB(0); }
-                        if (RXbuffer[2]==3) {   writelog(LOG_NOTICE,"Updating System ..."); 
-                                                sprintf(text, "msg.txt=\"Not yet implemented\""); sendCommand(text);
-                                                sprintf(text, "msg1.txt=\"Not yet implemented\""); sendCommand(text);
-                                                writelog(LOG_NOTICE,"Not yet implemented"); }
-                        if (RXbuffer[2]==4) {   writelog(LOG_NOTICE,"Sending OS info");
-                                                sprintf(text, "msg1.txt=\"%s\"",OSname); sendCommand(text);
-                                                sprintf(text, "msg2.txt=\"%s\"",PIname); sendCommand(text);
-                                            }
-                        if (RXbuffer[2]==5) {   writelog(LOG_NOTICE,"Sending HW info");
-                                                ok=getHWinfo(info);
-                                                if (ok==0) {
-                                                    sprintf(text, "msg1.txt=\"%s\"",info);
-                                                    writelog(LOG_NOTICE,"Hardware info: %s",info);
-                                                } else {
-                                                    sprintf(text, "msg1.txt=\"no info (%d)\"",ok);
-                                                    writelog(LOG_NOTICE,"Hardware info: none found (%d).",ok);
-                                                }
-                                                sendCommand(text);
+        sprintf(&text[strlen(text)], ")");
+     //   writelog(2, text);
 
-                                                ok=getMeminfo(info);
-                                                if (ok==0) {
-                                                    sprintf(text, "msg2.txt=\"Total Memory %s\"",info);
-                                                    writelog(LOG_NOTICE,"Memory info: %s",info);
-                                                } else {
-                                                    sprintf(text, "msg2.txt=\"no info (%d)\"",ok);
-                                                    writelog(LOG_NOTICE,"Memory info: none found (%d).",ok);
-                                                }
-                                                sendCommand(text);
-                        }
-                        if (RXbuffer[2]==6) { writelog(LOG_NOTICE,"Updating Display ..."); updateDisplay(); }
-                    }
-                } else
-                if (RXbuffer[1]==0xF2){
-                    dumpLHlist();
-                } else {
-                if ((RXbuffer[1]<0xF2)&&(received>2)&&(received<200)) {
-                        cmd=&RXbuffer[2];
-                        resNmbr=RXbuffer[2];
-                        if (resNmbr<32) {
-                            cmd++;
-                            writelog(LOG_DEBUG," Command return field will be %d",resNmbr);
-                        }
-                        writelog(LOG_NOTICE," Execute command \"%s\"",cmd);
-                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", cmd);
-                        sendCommand(TXbuffer);
-                        if (RXbuffer[1]==0xF1) {
-                            strcat(cmd," 2>&1");
-                            ls = popen(cmd, "r");
-                            char buf[256];
-                            if (fgets(buf, sizeof(buf), ls) != 0) {
-                                buf[sizeof(buf)-1]=0;
-                                strtok(buf, "\n");
-                                writelog(LOG_NOTICE," Command response \"%s\"",buf);
-                                if (resNmbr>=32) {
-                                    sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
-                                } else {
-                                    sprintf(TXbuffer, "result%02d.txt=\"%s\"",resNmbr, buf);
-                                }
-                                sendCommand(TXbuffer);
-                            }
-                            pclose(ls);
-                        } else {
-                            system(&RXbuffer[2]);
-                        }
-                        response=RXbuffer[1];
+        if (RXbuffer[0] == 42) { // '*'
+            if (received > 3 && RXbuffer[1] == '#' && RXbuffer[2] == 'X') {
+                char command[128] = {0};
+                char encoded[128] = {0};
+                int cmd_len = 0;
+                writelog(2, "Special Command Received");
+
+                // Find command length (look for FF FF FF or end of buffer)
+//                for (i = 3; i < received - 2; i++) {
+                for (i = 4; i < received - 2; i++) {
+                    if (RXbuffer[i] == 0xFF && RXbuffer[i + 1] == 0xFF && RXbuffer[i + 2] == 0xFF) {
+                        cmd_len = i - 3;
+//                        writelog(2, "Terminator found at index %d, cmd_len = %d", i, cmd_len);
+                        break;
                     }
                 }
-            } else {
-                code=RXbuffer[1];
-                memmove(&RXbuffer,&RXbuffer[2],512);
-                writelog(LOG_NOTICE," Command parameter \"%s\"",RXbuffer);
-                processButtons(code);
+                if (cmd_len == 0) {
+                    // If no terminator found, assume command runs to end of buffer
+                    cmd_len = received - 3;
+   //                 writelog(2, "No terminator found, assuming cmd_len = %d", cmd_len);
+                }
+
+                if (cmd_len > 0 && cmd_len < sizeof(command)) {
+                    strncpy(command, &RXbuffer[3], cmd_len);
+                    command[cmd_len] = '\0';
+    //                writelog(2, "Received password: \"%s\"", command);
+
+                    if (cmd_len == 0 || strcmp(command, "") == 0) {
+                        strcpy(command, "raspberry");
+                        writelog(2, "No password provided, using default: \"raspberry\"");
+                    }
+
+                    base64_encode((unsigned char *)command, strlen(command), encoded);
+    //                writelog(2, "Encoded password: \"%s\"", encoded);
+                    writelog(2, "Encoded password");
+
+                    FILE *fp = fopen("/etc/pspass", "w");
+                    if (fp != NULL) {
+                        fprintf(fp, "%s\n", encoded);
+                        fclose(fp);
+                        writelog(2, "Password successfully written to file");
+    //                    writelog(2, "Password successfully written to /etc/pspass");
+                    } else {
+                        writelog(2, "Failed to open pasword file for writing");
+    //                    writelog(2, "Failed to open /etc/pspass for writing");
+                        system("sudo mount -o remount,rw /");
+                        fp = fopen("/etc/pspass", "w");
+                        if (fp != NULL) {
+                            fprintf(fp, "%s\n", encoded);
+                            fclose(fp);
+                            writelog(2, "Password written after remounting filesystem");
+                        } else {
+                            writelog(2, "Still failed to write to passwird file");
+                        }
+                    }
+
+                    sprintf(text, "msg.txt=\"Password Encoded\"");
+                    sendCommand(text);
+                } else {
+                    writelog(2, "Invalid command length: %d", cmd_len);
+                }
+                return; // Exit after handling custom command
             }
         }
-        if (response>0) {
+
+        //////////////////////////////
+        // Original command processing continues
+        if (received == 3) writelog(LOG_NOTICE, "Received command 0x%02X/%d", RXbuffer[1], RXbuffer[2]);
+        else writelog(LOG_NOTICE, "Received command 0x%02X", RXbuffer[1]);
+
+        if (RXbuffer[1] > 0xEF) {
+            if ((RXbuffer[1] == 0xFE) && (received == 3)) {
+                sendScreenData(RXbuffer[2]);
+            } else if ((RXbuffer[1] == 0xFD) && (received == 4)) {
+                LHlist(RXbuffer[2], RXbuffer[3]);
+            } else if ((RXbuffer[1] == 0xFC) && (received == 3)) {
+                if (RXbuffer[2] == 2) {
+                    if (DisplayInfo[3][0] == 0) {
+                        sprintf(text, "msg1.txt=\"Model Unknown\"");
+                        sendCommand(text);
+                        sprintf(text, "msg2.txt=\"\"");
+                        sendCommand(text);
+                    } else {
+                        sprintf(text, "msg1.txt=\"%s\"", DisplayInfo[3]);
+                        sendCommand(text);
+                        sprintf(text, "msg2.txt=\"%s\"", DisplayInfo[6]);
+                        sendCommand(text);
+                    }
+                } else {
+                    inhibit = RXbuffer[2];
+                    if (inhibit == 0xFE) inhibit = 0;
+                    writelog(LOG_DEBUG, "Inhibit=%d", inhibit);
+                }
+                response = RXbuffer[1];
+            } else if (RXbuffer[1] == 0xFB) {
+                if (received == 2) updateDisplay();
+                if (received == 3) {
+                    if (RXbuffer[2] == 1) { writelog(LOG_NOTICE, "Updating users/Groups ..."); updateDB(86400); }
+                    if (RXbuffer[2] == 2) { updateDB(0); }
+                    if (RXbuffer[2] == 3) {
+                        writelog(LOG_NOTICE, "Updating System ...");
+                        sprintf(text, "msg.txt=\"Not yet implemented\""); sendCommand(text);
+                        sprintf(text, "msg1.txt=\"Not yet implemented\""); sendCommand(text);
+                        writelog(LOG_NOTICE, "Not yet implemented");
+                    }
+                    if (RXbuffer[2] == 4) {
+                        writelog(LOG_NOTICE, "Sending OS info");
+                        sprintf(text, "msg1.txt=\"%s\"", OSname); sendCommand(text);
+                        sprintf(text, "msg2.txt=\"%s\"", PIname); sendCommand(text);
+                    }
+                    if (RXbuffer[2] == 5) {
+                        writelog(LOG_NOTICE, "Sending HW info");
+                        ok = getHWinfo(info);
+                        if (ok == 0) {
+                            sprintf(text, "msg1.txt=\"%s\"", info);
+                            writelog(LOG_NOTICE, "Hardware info: %s", info);
+                        } else {
+                            sprintf(text, "msg1.txt=\"no info (%d)\"", ok);
+                            writelog(LOG_NOTICE, "Hardware info: none found (%d).", ok);
+                        }
+                        sendCommand(text);
+
+                        ok = getMeminfo(info);
+                        if (ok == 0) {
+                            sprintf(text, "msg2.txt=\"Total Memory %s\"", info);
+                            writelog(LOG_NOTICE, "Memory info: %s", info);
+                        } else {
+                            sprintf(text, "msg2.txt=\"no info (%d)\"", ok);
+                            writelog(LOG_NOTICE, "Memory info: none found (%d).", ok);
+                        }
+                        sendCommand(text);
+                    }
+                    if (RXbuffer[2] == 6) { writelog(LOG_NOTICE, "Updating Display ..."); updateDisplay(); }
+                }
+            } else if (RXbuffer[1] == 0xF2) {
+                dumpLHlist();
+            } else if ((RXbuffer[1] < 0xF2) && (received > 2) && (received < 200)) {
+                cmd = &RXbuffer[2];
+                resNmbr = RXbuffer[2];
+                if (resNmbr < 32) {
+                    cmd++;
+                    writelog(LOG_DEBUG, " Command return field will be %d", resNmbr);
+                }
+                writelog(LOG_NOTICE, " Execute command \"%s\"", cmd);
+                sprintf(TXbuffer, "msg.txt=\"Execute %s\"", cmd);
+                sendCommand(TXbuffer);
+                if (RXbuffer[1] == 0xF1) {
+                    strcat(cmd, " 2>&1");
+                    ls = popen(cmd, "r");
+                    char buf[256];
+                    if (fgets(buf, sizeof(buf), ls) != 0) {
+                        buf[sizeof(buf) - 1] = 0;
+                        strtok(buf, "\n");
+                        writelog(LOG_NOTICE, " Command response \"%s\"", buf);
+                        if (resNmbr >= 32) {
+                            sprintf(TXbuffer, "msg.txt=\"%s\"", buf);
+                        } else {
+                            sprintf(TXbuffer, "result%02d.txt=\"%s\"", resNmbr, buf);
+                        }
+                        sendCommand(TXbuffer);
+                    }
+                    pclose(ls);
+                } else {
+                    system(&RXbuffer[2]);
+                }
+                response = RXbuffer[1];
+            }
+        } else {
+            code = RXbuffer[1];
+            memmove(&RXbuffer, &RXbuffer[2], 512);
+            writelog(LOG_NOTICE, " Command parameter \"%s\"", RXbuffer);
+            processButtons(code);
+        }
+
+        if (response > 0) {
             sprintf(text, "MMDVM.status.val=25");
             sendCommand(text);
             sendCommand("click S0,1");
-        };
-
+        }
     }
 }
-
-
 
 void checkSerial(void) {
     fd_set fds;
