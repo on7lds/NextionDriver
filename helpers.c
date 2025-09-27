@@ -652,11 +652,16 @@ void addLH(char* displaydatabuf ) {
 
     if (startdata[page]>=LH_INDEXES) startdata[page]=1;
     i=startdata[page];
-    if ((page==0)||(test1)){ for (f=0;f<LH_FIELDS;f++) strncpy(data[page][f][i],data[page][f][0],99); strcpy(data[page][f][0],""); statusval=0; }
+    if ((page==0)||(test1)){
+        for (f=0; f<LH_FIELDS; f++) { 
+            strncpy(data[page][f][i],data[page][f][0],99); 
+            strcpy(data[page][f][0],"");  // Clear each field right after copying
+        }
+        statusval=0;
+    }
     strncpy(data[page][field][i],split,99);
-//printf("===write page%d field %d index %d split[%s] \n",page,field,i,split);
-
-//for (f=0;f<LH_FIELDS;f++) if (strlen(data[page][f][i])>0)printf("page %d index %d veld %d [%s]\n",page,i,f,data[page][f][i]);
+    //printf("===write page%d field %d index %d split[%s] \n",page,field,i,split);
+    //for (f=0;f<LH_FIELDS;f++) if (strlen(data[page][f][i])>0)printf("page %d index %d veld %d [%s]\n",page,i,f,data[page][f][i]);
 }
 
 

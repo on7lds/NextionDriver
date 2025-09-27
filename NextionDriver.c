@@ -140,9 +140,9 @@ void sendCommand(char *cmd){
             write(fd2,"\xFF\xFF\xFF",3);
             writelog(LOG_DEBUG," TX:  %s",cmd);
             if (screenLayout==4)
-                usleep(1042*(strlen(cmd)+1));
+                usleep(87*(strlen(cmd)+1));     // High speed, should be the low number
             else
-                usleep(87*(strlen(cmd)+1));
+                usleep(1042*(strlen(cmd)+1));   // 9600, needs longer usleep
         }
         sendTransparentData(MMDVM_DISPLAY,cmd);
         addLH(cmd);
@@ -419,7 +419,7 @@ void handleButton(int received) {
                             writelog(LOG_DEBUG," Command return field will be %d",resNmbr);
                         }
                         writelog(LOG_NOTICE," Execute command \"%s\"",cmd);
-                        sprintf(TXbuffer, "msg.txt=\"Execute %s\"", cmd);
+                        snprintf(TXbuffer, sizeof(TXbuffer), "msg.txt=\"Execute %.1000s\"", cmd); // Fix potential buffer overflow
                         sendCommand(TXbuffer);
                         if (RXbuffer[1]==0xF1) {
                             strcat(cmd," 2>&1");
@@ -475,7 +475,7 @@ void checkSerial(void) {
 
     int r = read (fd2,&RXbuffertemp[RXtail],512);
     if (r>0) {
-//        writelog(LOG_DEBUG,"Receive %d bytes from serial",r);
+        // writelog(LOG_DEBUG,"Receive %d bytes from serial",r);
         for(i=0;i<r;i++) if (RXbuffertemp[RXtail+i]==0) RXbuffertemp[RXtail+i]=0xFE;
 
         RXtail+=r;
@@ -483,7 +483,7 @@ void checkSerial(void) {
 
         s=strstr(RXbuffertemp,ENDMRKR);
         while (s!=NULL) {
-//            writelog(LOG_DEBUG,"Endmarker found");
+            // writelog(LOG_DEBUG,"Endmarker found");
             s[0]=0;
             memcpy(RXbuffer,RXbuffertemp,strlen(RXbuffertemp)+1);
             handleButton(strlen(RXbuffertemp));
